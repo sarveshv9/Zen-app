@@ -1,6 +1,8 @@
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+
 
 const routine = [
   { hour: 6, task: "🌞 Wake Up Slowly" },
@@ -63,11 +65,11 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.time}>{currentTime}</Text>
-      <Text style={styles.task}>Task: {currentTask}</Text>
-      <Image source={taskImages[currentTask as keyof typeof taskImages]} style={styles.taskImage} resizeMode="contain" />
+      <Animated.Text entering={FadeIn.duration(500)} exiting={FadeOut} style={styles.task}>Task: {currentTask}</Animated.Text>
+      <Animated.Image entering={FadeIn.duration(700)} exiting={FadeOut} source={taskImages[currentTask as keyof typeof taskImages]} style={styles.taskImage} resizeMode="contain" />
       <Text style={styles.quote}>"Start your day with calm" </Text>
       <Pressable style={styles.button} onPress={() => router.push("/routine")}>
-        <Text style={styles.buttonText}>Start My Day</Text>
+        <Animated.Text entering={FadeIn.duration(500).delay(300)} exiting={FadeOut} style={styles.buttonText}>Start My Day</Animated.Text>
       </Pressable>
     </View>
   );

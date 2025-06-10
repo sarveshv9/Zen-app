@@ -1,12 +1,23 @@
 import { router } from "expo-router";
-import { useState } from "react";
-import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useRef, useState } from "react";
+import {
+  Animated,
+  Dimensions,
+  Easing,
+  Image,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 type RoutineItem = {
   time: string;
   task: string;
   description: string;
-  image: any;   
+  image: any;
 };
 
 const routineItems: RoutineItem[] = [
@@ -84,54 +95,105 @@ const routineItems: RoutineItem[] = [
   },
 ];
 
-
-
 export default function RoutineScreen() {
   const [selectedTask, setSelectedTask] = useState<RoutineItem | null>(null);
   const [modalVisible, setModalVisibal] = useState(false);
+  const [touchPosition, setTouchPosition] = useState({ x: 0, y: 0 });
+
+  const screen = Dimensions.get("window");
+
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+  const translateX = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(0)).current;
 
   const openModal = (task: RoutineItem) => {
     setSelectedTask(task);
+
+    translateX.setValue(touchPosition.x - screen.width / 2);
+    translateY.setValue(touchPosition.y - screen.height / 2);
+    scaleAnim.setValue(0);
     setModalVisibal(true);
+
+    Animated.parallel([
+      Animated.timing(translateX, {
+        toValue: 0,
+        duration: 300,
+        easing: Easing.out(Easing.exp),
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 300,
+        easing: Easing.out(Easing.exp),
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 300,
+        easing: Easing.out(Easing.exp),
+        useNativeDriver: true,
+      }),
+    ]).start();
   };
 
   const closeModal = () => {
-    setModalVisibal(false);
-    setSelectedTask(null);
+    Animated.timing(scaleAnim, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      setModalVisibal(false);
+      setSelectedTask(null);
+    });
   };
 
-    return (
-        <ScrollView style={styles.container}>
-            <Text style={styles.heading}>🧘 Zen Routine</Text>
-            {routineItems.map((item, index) => (
-                <Pressable key={index} onPress={() => openModal(item)}>
-                  <View style={styles.card}>
-                    <Text style={styles.time}>{item.time}</Text>
-                    <Text style={styles.task}>{item.task}</Text>
-                  </View>  
-                </Pressable>
-            ))}
-            <Pressable style={styles.button} onPress={() => router.push("/")}>
-                  <Text style={styles.buttonText}>Back To Home</Text>
-            </Pressable>
+  return (
+    <ScrollView style={styles.container}>
+      <Text style={styles.heading}>🧘 Zen Routine</Text>
+      {routineItems.map((item, index) => (
+        <Pressable
+          key={index}
+          onPressIn={(e) => {
+            const { pageX, pageY } = e.nativeEvent;
+            setTouchPosition({ x: pageX, y: pageY });
+          }}
+          onPress={() => openModal(item)}
+        >
+          <View style={styles.card}>
+            <Text style={styles.time}>{item.time}</Text>
+            <Text style={styles.task}>{item.task}</Text>
+          </View>
+        </Pressable>
+      ))}
+      <Pressable style={styles.button} onPress={() => router.push("/")}>
+        <Text style={styles.buttonText}>Back To Home</Text>
+      </Pressable>
 
-            <Modal visible={modalVisible} transparent animationType="slide" onRequestClose={closeModal}>
-              <View style={styles.modalOverlay}>
-                <View style={styles.modalContent}>
-                  {selectedTask && ( <>
-                  <Image source={selectedTask.image} style={styles.modalImage} resizeMode="contain"/>
-                  <Text style={styles.modalTitle}>{selectedTask.task}</Text>
-                  <Text style={styles.modalDescription}>{selectedTask.description}</Text>
-                  <Pressable style={styles.modalButton} onPress={closeModal}>
-                    <Text style={styles.modalButtonText}>Close</Text>
-                  </Pressable>
-                  </>)}
-                </View>
-        
-              </View>
-            </Modal>
-        </ScrollView>
-    );
+      <Modal visible={modalVisible} transparent animationType="none" onRequestClose={closeModal}>
+        <View style={styles.modalOverlay}>
+          <Animated.View
+            style={[
+              styles.modalContent,
+              {
+                transform: [{ translateX }, { translateY }, { scale: scaleAnim }],
+              },
+            ]}
+          >
+            {selectedTask && (
+              <>
+                <Image source={selectedTask.image} style={styles.modalImage} resizeMode="contain" />
+                <Text style={styles.modalTitle}>{selectedTask.task}</Text>
+                <Text style={styles.modalDescription}>{selectedTask.description}</Text>
+                <Pressable style={styles.modalButton} onPress={closeModal}>
+                  <Text style={styles.modalButtonText}>Close</Text>
+                </Pressable>
+              </>
+            )}
+          </Animated.View>
+        </View>
+      </Modal>
+    </ScrollView>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -178,7 +240,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 50,
     flex: 1,
-    alignItems: "center"
+    alignItems: "center",
   },
   buttonText: {
     color: "#FFC7C7",
@@ -187,46 +249,46 @@ const styles = StyleSheet.create({
     fontFamily: "UbuntuBold",
   },
   modalOverlay: {
-  flex: 1,
-  backgroundColor: "rgba(0, 0, 0, 0.5)",
-  justifyContent: "center",
-  alignItems: "center",
-},
-modalContent: {
-  backgroundColor: "#FFF",
-  padding: 24,
-  borderRadius: 20,
-  width: "80%",
-  alignItems: "center",
-},
-modalImage: {
-  width: 120,
-  height: 120,
-  marginBottom: 16,
-},
-modalTitle: {
-  fontSize: 22,
-  fontFamily: "UbuntuBold",
-  color: "#FFC7C7",
-  marginBottom: 10,
-  textAlign: "center",
-},
-modalDescription: {
-  fontSize: 16,
-  fontFamily: "UbuntuLightI",
-  color: "#8785A2",
-  marginBottom: 20,
-  textAlign: "center",
-},
-modalButton: {
-  backgroundColor: "#FFC7C7",
-  paddingVertical: 10,
-  paddingHorizontal: 30,
-  borderRadius: 12,
-},
-modalButtonText: {
-  color: "#fff",
-  fontFamily: "UbuntuBold",
-  fontSize: 16,
-},
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: "#FFF",
+    padding: 24,
+    borderRadius: 20,
+    width: "80%",
+    alignItems: "center",
+  },
+  modalImage: {
+    width: 120,
+    height: 120,
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontFamily: "UbuntuBold",
+    color: "#FFC7C7",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  modalDescription: {
+    fontSize: 16,
+    fontFamily: "UbuntuLightI",
+    color: "#8785A2",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  modalButton: {
+    backgroundColor: "#FFC7C7",
+    paddingVertical: 10,
+    paddingHorizontal: 30,
+    borderRadius: 12,
+  },
+  modalButtonText: {
+    color: "#fff",
+    fontFamily: "UbuntuBold",
+    fontSize: 16,
+  },
 });
