@@ -1,17 +1,6 @@
 import { router } from "expo-router";
 import React, { useRef, useState } from "react";
-import {
-  Animated,
-  Dimensions,
-  Easing,
-  Image,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Animated, Dimensions, Easing, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, } from "react-native";
 
 type RoutineItem = {
   time: string;
@@ -20,7 +9,7 @@ type RoutineItem = {
   image: any;
 };
 
-const routineItems: RoutineItem[] = [
+const initialRoutine: RoutineItem[] = [
   {
     time: "6:00 AM",
     task: "🌞 Wake Up Slowly",
@@ -96,12 +85,17 @@ const routineItems: RoutineItem[] = [
 ];
 
 export default function RoutineScreen() {
+  const [routineItems, setRoutineItems] = useState<RoutineItem[]>(initialRoutine);
   const [selectedTask, setSelectedTask] = useState<RoutineItem | null>(null);
   const [modalVisible, setModalVisibal] = useState(false);
+  const [formVisible, setFormVisible] = useState(false);
+  const [editingIndex,setEditingIndex] = useState<number | null>(null);
+  const [formTime, setFormTime] = useState("");
+  const [formTask, setFormTask] = useState("");  
+  const [formDescription, setformDescription] = useState("");
+
   const [touchPosition, setTouchPosition] = useState({ x: 0, y: 0 });
-
   const screen = Dimensions.get("window");
-
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const translateX = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(0)).current;
@@ -147,9 +141,61 @@ export default function RoutineScreen() {
     });
   };
 
+  const openForm = (item?: RoutineItem, index?: number) => {
+    if (item && typeof index === "number") {
+      setEditingIndex(index);
+      setFormTime(item.time);
+      setFormTask(item.task);
+      setformDescription(item.description);
+    }else{
+      setEditingIndex(null);
+      setFormTime("");
+      setFormTask("");
+      setformDescription("");
+    }
+    setFormVisible(true);
+  };
+
+  const closeForm = () => {
+      setFormVisible(false);
+      setEditingIndex(null);
+      setFormTime("");
+      setFormTask("");
+      setformDescription("");
+  };
+
+  const handleSave = () => {
+    const newItem: RoutineItem = {
+      time: formTime,
+      task: formTask,
+      description: formDescription,
+      image: require("../assets/images/pixel/breathe.png")
+    };
+
+    if (editingIndex !== null) {
+      const updated = [...routineItems];
+      updated[editingIndex] = newItem;
+      setRoutineItems(updated);
+    }else{
+      setRoutineItems([...routineItems, newItem]);
+    }
+    closeForm();
+  };
+
+  const handleDelete = () => {
+    if (selectedTask) {
+      const filtered = routineItems.filter((item) => item !== selectedTask);
+      setRoutineItems(filtered);
+      closeModal();
+    }
+  };
+
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.heading}>🧘 Zen Routine</Text>
+      <Pressable style={styles.addButton} onPress={() => openForm()}> 
+        <Text style={styles.addButtonText}>+ Add Task</Text> 
+      </Pressable>
       {routineItems.map((item, index) => (
         <Pressable
           key={index}
@@ -184,12 +230,30 @@ export default function RoutineScreen() {
                 <Image source={selectedTask.image} style={styles.modalImage} resizeMode="contain" />
                 <Text style={styles.modalTitle}>{selectedTask.task}</Text>
                 <Text style={styles.modalDescription}>{selectedTask.description}</Text>
+                <Pressable style={styles.modalButton} onPress={() => openForm(selectedTask, routineItems.indexOf(selectedTask))}>
+                  <Text style={styles.modalButtonText}>Edit</Text>
+                </Pressable>
+                <Pressable style={styles.modalButton} onPress={handleDelete}>
+                  <Text style={[styles.modalButtonText, {color: "red"}]}>Delete</Text>
+                </Pressable>
                 <Pressable style={styles.modalButton} onPress={closeModal}>
                   <Text style={styles.modalButtonText}>Close</Text>
                 </Pressable>
               </>
             )}
           </Animated.View>
+        </View>
+      </Modal>
+
+      <Modal visible={formVisible} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <TextInput style={styles.input} value={formTime} onChangeText={setFormTime} placeholder="Time" />
+              <TextInput style={styles.input} value={formTask} onChangeText={setFormTask} placeholder="Task" />
+              <TextInput style={styles.input} value={formDescription} onChangeText={setformDescription} placeholder="Description" />
+              <Pressable onPress={handleSave}><Text style={styles.modalButtonText}>Save</Text></Pressable>
+              <Pressable onPress={handleDelete}><Text style={styles.modalButtonText}>Delete</Text></Pressable>
+            </View>
         </View>
       </Modal>
     </ScrollView>
@@ -290,5 +354,26 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontFamily: "UbuntuBold",
     fontSize: 16,
+  },
+  input: { 
+    borderWidth: 1, 
+    borderColor: "#ccc", 
+    borderRadius: 8, 
+    padding: 10, 
+    marginBottom: 10, 
+    width: "100%" 
+  },
+  addButton: { 
+    backgroundColor: "#FFC7C7", 
+    paddingVertical: 12, 
+    paddingHorizontal: 32, 
+    borderRadius: 20, 
+    marginVertical: 20, 
+    alignItems: "center" 
+  },
+  addButtonText: {
+   color: "white", 
+   fontSize: 16, 
+   fontWeight: "bold" 
   },
 });
