@@ -230,6 +230,7 @@ export default function RoutineScreen() {
                 <Image source={selectedTask.image} style={styles.modalImage} resizeMode="contain" />
                 <Text style={styles.modalTitle}>{selectedTask.task}</Text>
                 <Text style={styles.modalDescription}>{selectedTask.description}</Text>
+                <View style={styles.modalcrud}>
                 <Pressable style={styles.modalButton} onPress={() => openForm(selectedTask, routineItems.indexOf(selectedTask))}>
                   <Text style={styles.modalButtonText}>Edit</Text>
                 </Pressable>
@@ -239,6 +240,7 @@ export default function RoutineScreen() {
                 <Pressable style={styles.modalButton} onPress={closeModal}>
                   <Text style={styles.modalButtonText}>Close</Text>
                 </Pressable>
+                </View>
               </>
             )}
           </Animated.View>
@@ -274,7 +276,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   card: {
-    backgroundColor: "#FFF6E3",
+    backgroundColor: "#E9EFEC",
     padding: 16,
     borderRadius: 16,
     marginBottom: 12,
@@ -376,4 +378,10 @@ const styles = StyleSheet.create({
    fontSize: 16, 
    fontWeight: "bold" 
   },
-});
+  modalcrud: {
+  flexDirection: "row", 
+  alignItems: "center",    
+  justifyContent: "center", 
+  gap: 10,                 
+  }
+}); 
