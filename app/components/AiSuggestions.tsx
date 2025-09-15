@@ -1,88 +1,67 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { theme } from '../styles/shared';
 
-interface AiSuggestionsProps {
-  tasks: string[];
-  currentTask?: string;
-}
-
-interface Suggestion {
+interface Quote {
   id: string;
   text: string;
+  author?: string;
 }
 
-const AiSuggestions: React.FC<AiSuggestionsProps> = ({ tasks, currentTask }) => {
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+const MotivationalQuotes: React.FC<{ currentTask?: string }> = ({ currentTask }) => {
+  const [quotes, setQuotes] = useState<Quote[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchSuggestions = useCallback(async () => {
-    if (tasks.length === 0 && !currentTask) {
-      setSuggestions([]);
-      return;
-    }
-
+  const fetchQuotes = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      // Get API key from environment variable
       const apiKey = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
-      
+
       if (!apiKey) {
         throw new Error('Gemini API key not found in environment variables');
       }
-      
-      // Use the correct Gemini API endpoint
+
       const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
 
-      // Create context-aware prompt
-      let prompt = '';
-      if (currentTask && currentTask !== "🌸 Just Breathe") {
-        prompt = `Current focus: "${currentTask}"
-My todo tasks: ${tasks.join(', ')}
+      const prompt = currentTask
+        ? `Give me 3 short motivational quotes to stay focused while working on: "${currentTask}".  
 
-Based on my current focus and todo list, provide 3 specific, actionable tips that help me:
-1. Optimize my current activity: "${currentTask}"
-2. Better organize my remaining tasks
-3. Maintain focus and productivity
+Each quote should:
+- Be max 20 words  
+- Be uplifting and inspiring  
+- Include the author's name if well-known, otherwise just the quote  
 
-Each tip should be:
-- Maximum 12 words
-- Directly relevant to my current situation
-- Practical and immediately actionable
+Format strictly as:
+1. "Quote" — Author  
+2. "Quote" — Author  
+3. "Quote" — Author`
+        : `Give me 3 short motivational quotes about productivity and focus.  
 
-Format as a simple list, one tip per line, no bullet points.`;
-      } else {
-        prompt = `My todo tasks: ${tasks.join(', ')}
+Each quote should:
+- Be max 20 words  
+- Be uplifting and inspiring  
+- Include the author's name if well-known, otherwise just the quote  
 
-Provide 3 smart tips for organizing and prioritizing these specific tasks. Each tip should be:
-- Maximum 12 words  
-- Focused on productivity and organization
-- Practical and immediately actionable
-
-Format as a simple list, one tip per line, no bullet points.`;
-      }
+Format strictly as:
+1. "Quote" — Author  
+2. "Quote" — Author  
+3. "Quote" — Author`;
 
       const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: prompt
-            }]
-          }],
+          contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
-            temperature: 0.7,
+            temperature: 0.8,
             topK: 40,
             topP: 0.95,
-            maxOutputTokens: 512,
-          }
+            maxOutputTokens: 150,
+          },
         }),
       });
 
@@ -94,42 +73,42 @@ Format as a simple list, one tip per line, no bullet points.`;
       const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
       if (!generatedText) {
-        throw new Error('No suggestions received from AI');
+        throw new Error('No quotes received from AI');
       }
 
-      // Parse the response into individual suggestions
-      const suggestionLines = generatedText
+      // Split into lines, clean & parse
+      const lines = generatedText
         .split('\n')
         .filter((line: string) => line.trim().length > 0)
-        .slice(0, 3); // Limit to 3 suggestions for compact display
+        .slice(0, 3);
 
-      const parsedSuggestions: Suggestion[] = suggestionLines.map((line: string, index: number) => ({
-        id: `suggestion-${index}`,
-        text: line.trim().replace(/^[-•*]\s*/, ''), // Remove any bullet points
-      }));
+      const parsedQuotes: Quote[] = lines.map((line: string, index: number): Quote => {
+        let [quotePart, authorPart] = line
+          .replace(/^\d+\.\s*/, '') // remove "1. " or "2. "
+          .split(/[-–—]/) // split on dash
+          .map((s: string) => s.trim());
 
-      setSuggestions(parsedSuggestions);
+        return {
+          id: `quote-${index}`,
+          text: quotePart?.replace(/^["']|["']$/g, '') || '',
+          author: authorPart || undefined,
+        };
+      });
+
+      setQuotes(parsedQuotes);
     } catch (err) {
-      console.error('Error fetching AI suggestions:', err);
-      setError('Unable to get suggestions');
-      setSuggestions([]);
+      console.error('Error fetching motivational quotes:', err);
+      setError('Unable to load inspiration');
+      setQuotes([]);
     } finally {
       setIsLoading(false);
     }
-  }, [tasks, currentTask]);
+  }, [currentTask]);
 
-  // Auto-fetch suggestions when tasks change
-  React.useEffect(() => {
-    if (tasks.length > 0 || currentTask) {
-      fetchSuggestions();
-    } else {
-      setSuggestions([]);
-    }
-  }, [tasks, currentTask, fetchSuggestions]);
-
-  if (tasks.length === 0 && !currentTask) {
-    return null;
-  }
+  // Fetch on mount + when task changes
+  useEffect(() => {
+    fetchQuotes();
+  }, [fetchQuotes]);
 
   return (
     <Animated.View
@@ -138,13 +117,13 @@ Format as a simple list, one tip per line, no bullet points.`;
       style={styles.container}
     >
       <View style={styles.header}>
-        <Text style={styles.title}>✨ Smart Tips</Text>
+        <Text style={styles.title}>🌟 Inspiration</Text>
         <Pressable
           style={({ pressed }) => [
             styles.refreshButton,
-            pressed && styles.refreshButtonPressed
+            pressed && styles.refreshButtonPressed,
           ]}
-          onPress={fetchSuggestions}
+          onPress={fetchQuotes}
           disabled={isLoading}
         >
           <Text style={styles.refreshButtonText}>
@@ -152,25 +131,27 @@ Format as a simple list, one tip per line, no bullet points.`;
           </Text>
         </Pressable>
       </View>
-      
+
       <View style={styles.content}>
         {isLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="small" color={theme.colors.primary} />
-            <Text style={styles.loadingText}>Thinking…</Text>
+            <Text style={styles.loadingText}>Finding wisdom…</Text>
           </View>
         ) : error ? (
           <Text style={styles.errorText}>{error}</Text>
-        ) : suggestions.length > 0 ? (
-          <View style={styles.suggestionsContainer}>
-            {suggestions.map((suggestion, index) => (
-              <Animated.Text
-                key={suggestion.id}
-                entering={FadeIn.duration(300).delay(index * 50)}
-                style={styles.suggestionText}
+        ) : quotes.length > 0 ? (
+          <View style={styles.quoteContainer}>
+            {quotes.map((q, index) => (
+              <Animated.View
+                key={q.id}
+                entering={FadeIn.duration(400).delay(index * 100)}
               >
-                • {suggestion.text}
-              </Animated.Text>
+                <Text style={styles.quoteText}>“{q.text}”</Text>
+                {q.author && (
+                  <Text style={styles.authorText}>— {q.author}</Text>
+                )}
+              </Animated.View>
             ))}
           </View>
         ) : null}
@@ -201,7 +182,9 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
   },
   content: {
-    minHeight: 60,
+    minHeight: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   loadingContainer: {
     flexDirection: 'row',
@@ -215,15 +198,25 @@ const styles = StyleSheet.create({
     color: theme.colors.secondary,
     marginLeft: theme.spacing.xs,
   },
-  suggestionsContainer: {
-    gap: theme.spacing.xs,
+  quoteContainer: {
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.sm,
   },
-  suggestionText: {
-    fontSize: 13,
+  quoteText: {
+    fontSize: 14,
     fontFamily: theme.fonts.regular,
     color: theme.colors.primary,
-    lineHeight: 18,
-    opacity: 0.9,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  authorText: {
+    fontSize: 12,
+    fontFamily: theme.fonts.regular,
+    color: theme.colors.secondary,
+    opacity: 0.7,
+    marginBottom: theme.spacing.sm,
+    textAlign: 'center',
   },
   errorText: {
     fontSize: 12,
@@ -250,4 +243,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default AiSuggestions;
+export default MotivationalQuotes;

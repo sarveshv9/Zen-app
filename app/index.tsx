@@ -40,18 +40,18 @@ const ROUTINE: RoutineItem[] = [
 ];
 
 const TASK_IMAGES: TaskImage = {
-  "🌞 Wake Up Slowly": require("../assets/images/pixel/wakeup.png"),
-  "💧 Drink Warm Water": require("../assets/images/pixel/water.png"),
-  "🧘 Light Stretching or Yoga": require("../assets/images/pixel/yoga.png"),
-  "🍵 Herbal Tea & Journaling": require("../assets/images/pixel/tea_journal.png"), 
-  "🥣 Healthy Breakfast": require("../assets/images/pixel/breakfast.png"),
-  "📚 Learn Something Calm": require("../assets/images/pixel/learn.png"), 
-  "🥗 Light Lunch": require("../assets/images/pixel/lunch.png"), 
-  "🌿 Nature Walk or Break": require("../assets/images/pixel/walk.png"), 
-  "📝 Reflect on the Day": require("../assets/images/pixel/reflect.png"), 
-  "🍽 Light Dinner": require("../assets/images/pixel/dinner.png"),
-  "🌙 Prepare for Sleep": require("../assets/images/pixel/prepare_sleep.png"), 
-  "🛌 Sleep Early": require("../assets/images/pixel/sleep.png"),
+  "🌞 Wake Up Slowly": require("./assets/images/pixel/wakeup.png"),
+  "💧 Drink Warm Water": require("./assets/images/pixel/water.png"),
+  "🧘 Light Stretching or Yoga": require("./assets/images/pixel/yoga.png"),
+  "🍵 Herbal Tea & Journaling": require("./assets/images/pixel/tea_journal.png"), 
+  "🥣 Healthy Breakfast": require("./assets/images/pixel/breakfast.png"),
+  "📚 Learn Something Calm": require("./assets/images/pixel/study.png"), 
+  "🥗 Light Lunch": require("./assets/images/pixel/lunch.png"), 
+  "🌿 Nature Walk or Break": require("./assets/images/pixel/walk.png"), 
+  "📝 Reflect on the Day": require("./assets/images/pixel/reflect.png"), 
+  "🍽 Light Dinner": require("./assets/images/pixel/dinner.png"),
+  "🌙 Prepare for Sleep": require("./assets/images/pixel/prepare_sleep.png"), 
+  "🛌 Sleep Early": require("./assets/images/pixel/sleep.png"),
 };
 
 // Sample todo tasks - replace this with your actual state management
@@ -193,7 +193,7 @@ export default function HomeScreen() {
         </View>
         
         {/* AI Suggestions Component */}
-        <AiSuggestions tasks={todoTasks} currentTask={currentTask} />
+        <AiSuggestions currentTask={currentTask} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   },
   taskImage: {
     width: 140,
-    height: 140,
+    height: 180,
   },
   quote: {
     fontSize: 16,
