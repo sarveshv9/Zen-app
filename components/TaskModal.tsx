@@ -1,16 +1,16 @@
-// src/components/TaskModal.tsx
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import {
-    Animated,
-    Image,
-    Modal,
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
+  Animated,
+  Image,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
-import { RoutineItem } from "../routine";
-import { theme } from "../styles/shared";
+import { useTheme } from "../context/ThemeContext";
+import { Theme } from "../styles/shared";
+import { RoutineItem } from "../utils/utils";
 
 interface TaskModalProps {
   visible: boolean;
@@ -29,6 +29,9 @@ const TaskModal: React.FC<TaskModalProps> = ({
   onEdit,
   onDelete,
 }) => {
+  const { theme } = useTheme();
+  const styles = useMemo(() => getStyles(theme), [theme]);
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
 
@@ -61,7 +64,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
         }),
       ]).start();
     }
-  }, [visible]);
+  }, [visible, fadeAnim, slideAnim]);
 
   if (!task) return null;
 
@@ -87,10 +90,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
             },
           ]}
         >
-          <Pressable
-            onPress={() => {}}
-            style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1 }]}
-          >
+          <Pressable onStartShouldSetResponder={() => true}>
             <View style={styles.modalHandle} />
             <View style={styles.imageContainer}>
               <View style={styles.imageGlow} />
@@ -141,7 +141,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (theme: Theme) => StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.4)",
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     left: -10,
     right: -10,
     bottom: -10,
-    backgroundColor: `${theme.colors.primary}15`,
+    backgroundColor: `${theme.colors.primary}1A`, // ~10% opacity
     borderRadius: 60,
     zIndex: 0,
   },
@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: theme.colors.primary,
     fontWeight: "600",
-    backgroundColor: `${theme.colors.primary}15`,
+    backgroundColor: `${theme.colors.primary}1A`,
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.xs,
     borderRadius: theme.borderRadius.sm,
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
   actionButton: {
     flex: 1,
     paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     minHeight: 44,
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
   },
   deleteButton: {
-    backgroundColor: theme.colors.danger,
+    backgroundColor: '#FF3B30', // Hardcoded red color
   },
   buttonPressed: {
     transform: [{ scale: 0.96 }],

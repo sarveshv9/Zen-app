@@ -1,19 +1,19 @@
-// src/components/TaskForm.tsx
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    Animated,
-    Dimensions,
-    Modal,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View
+  Animated,
+  Dimensions,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View
 } from "react-native";
-import { FormData } from "../routine";
-import { theme } from "../styles/shared";
-import AppleTimePicker from "./AppleTimePicker";
+import { useTheme } from "../context/ThemeContext";
+import { Theme } from "../styles/shared";
+import { FormData } from "../utils/utils"; // Corrected import path
+import { SimpleTimePicker } from "./SimpleTimePicker";
 
 interface TaskFormProps {
   visible: boolean;
@@ -34,33 +34,25 @@ const TaskForm: React.FC<TaskFormProps> = ({
   onSave,
   onClose,
 }) => {
+  // Use the theme hook to get the current theme
+  const { theme } = useTheme();
+  // Create dynamic styles that will update when the theme changes
+  const styles = useMemo(() => getStyles(theme), [theme]);
+
   const [showTimePicker, setShowTimePicker] = useState(false);
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
 
   useEffect(() => {
     if (visible) {
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 100,
-        friction: 8,
-      }).start();
+      Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 100, friction: 8 }).start();
     } else {
-      Animated.timing(slideAnim, {
-        toValue: SCREEN_HEIGHT,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
+      Animated.timing(slideAnim, { toValue: SCREEN_HEIGHT, duration: 300, useNativeDriver: true }).start();
     }
-  }, [visible]);
+  }, [visible, slideAnim]);
 
-  const handleTimeSelect = useCallback(
-    (time: string) => {
-      onUpdateField("time", time);
-      setShowTimePicker(false);
-    },
-    [onUpdateField]
-  );
+  const handleConfirmTime = useCallback(() => {
+    setShowTimePicker(false);
+  }, []);
 
   return (
     <Modal
@@ -129,26 +121,54 @@ const TaskForm: React.FC<TaskFormProps> = ({
             </View>
           </ScrollView>
         </Animated.View>
-        <Modal
-          visible={showTimePicker}
-          transparent
-          animationType="slide"
-        >
-          <View style={styles.timePickerModalOverlay}>
-            <View style={styles.timePickerModal}>
-              <AppleTimePicker
+
+        {showTimePicker && (
+          <Pressable
+            style={styles.timePickerOverlay}
+            onPress={handleConfirmTime}
+          >
+            <Pressable
+              onPress={(e) => e.stopPropagation()}
+              style={styles.timePickerModalContainer}
+            >
+              <SimpleTimePicker
                 selectedTime={formData.time}
-                onTimeChange={handleTimeSelect}
+                onTimeChange={(time: string) => onUpdateField("time", time)}
+                onConfirm={handleConfirmTime}
               />
-            </View>
-          </View>
-        </Modal>
+            </Pressable>
+          </Pressable>
+        )}
       </View>
     </Modal>
   );
 };
 
-const styles = StyleSheet.create({
+// Converted the static StyleSheet into a function that accepts a theme
+const getStyles = (theme: Theme) => StyleSheet.create({
+  timePickerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  timePickerModalContainer: {
+    backgroundColor: theme.colors.white,
+    borderRadius: 28,
+    paddingVertical: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.lg,
+    width: '90%',
+    maxWidth: 320,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.25,
+    shadowRadius: 25,
+    elevation: 25,
+  },
   formModalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.4)",
@@ -188,13 +208,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: theme.colors.secondary,
     fontWeight: "500",
-    fontFamily: theme.fonts.medium,
   },
   enhancedFormTitle: {
     fontSize: 18,
     fontWeight: "700",
     color: theme.colors.primary,
-    fontFamily: theme.fonts.bold,
   },
   formSaveButton: {
     paddingVertical: theme.spacing.xs,
@@ -204,7 +222,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: theme.colors.primary,
     fontWeight: "600",
-    fontFamily: theme.fonts.bold,
   },
   formScrollView: {
     flex: 1,
@@ -219,7 +236,6 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     marginBottom: theme.spacing.sm,
     marginLeft: theme.spacing.xs,
-    fontFamily: theme.fonts.bold,
   },
   enhancedInput: {
     backgroundColor: theme.colors.white,
@@ -231,7 +247,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(0, 0, 0, 0.06)",
     minHeight: 50,
-    fontFamily: theme.fonts.regular,
   },
   descriptionInput: {
     minHeight: 100,
@@ -253,7 +268,6 @@ const styles = StyleSheet.create({
   timeInputText: {
     fontSize: 16,
     color: theme.colors.primary,
-    fontFamily: theme.fonts.regular,
   },
   placeholderText: {
     color: theme.colors.secondary,
@@ -262,25 +276,6 @@ const styles = StyleSheet.create({
   timeInputIcon: {
     fontSize: 18,
     opacity: 0.6,
-  },
-  timePickerModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  timePickerModal: {
-    backgroundColor: theme.colors.white,
-    borderRadius: 28,
-    paddingVertical: theme.spacing.xl,
-    paddingHorizontal: theme.spacing.lg,
-    width: '90%',
-    maxWidth: 320,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.25,
-    shadowRadius: 25,
-    elevation: 25,
   },
 });
 

@@ -1,8 +1,8 @@
-// src/components/RoutineCard.tsx
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
-import { RoutineItem } from "../routine";
-import { theme } from "../styles/shared";
+import { useTheme } from "../context/ThemeContext";
+import { Theme } from "../styles/shared";
+import { RoutineItem } from "../utils/utils";
 
 interface RoutineCardProps {
   item: RoutineItem;
@@ -10,6 +10,11 @@ interface RoutineCardProps {
 }
 
 const RoutineCard: React.FC<RoutineCardProps> = ({ item, onPress }) => {
+  // Use the theme hook to get the current theme
+  const { theme } = useTheme();
+  // Create dynamic styles that will update when the theme changes
+  const styles = useMemo(() => getStyles(theme), [theme]);
+  
   const [touchPosition, setTouchPosition] = useState({ x: 0, y: 0 });
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
@@ -65,7 +70,8 @@ const RoutineCard: React.FC<RoutineCardProps> = ({ item, onPress }) => {
   );
 };
 
-const styles = StyleSheet.create({
+// Converted the static StyleSheet into a function that accepts a theme
+const getStyles = (theme: Theme) => StyleSheet.create({
   enhancedRoutineCard: {
     backgroundColor: theme.colors.white,
     borderRadius: theme.borderRadius.lg,
@@ -93,7 +99,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.lg,
   },
   cardTimeContainer: {
-    backgroundColor: `${theme.colors.primary}15`,
+    backgroundColor: `${theme.colors.primary}1A`, // Use 1A for ~10% opacity
     paddingVertical: theme.spacing.xs,
     paddingHorizontal: theme.spacing.sm,
     borderRadius: theme.borderRadius.sm,
@@ -128,7 +134,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: `${theme.colors.primary}15`,
+    backgroundColor: `${theme.colors.primary}1A`,
     alignItems: "center",
     justifyContent: "center",
   },
