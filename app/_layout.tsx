@@ -1,3 +1,5 @@
+// In app/_layout.tsx
+
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -19,11 +21,12 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <StatusBar style="dark" />
-      <Stack 
-        screenOptions={{
-          headerShown: false,
-        }}
-      />
+      {/* CHANGE IS HERE VVV */}
+      <Stack>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="routine" options={{ headerShown: false }} />
+      </Stack>
+      {/* CHANGE IS HERE ^^^ */}
     </ThemeProvider>
   );
 }

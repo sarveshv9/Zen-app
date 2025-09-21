@@ -1,10 +1,11 @@
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { ImageSourcePropType, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ImageSourcePropType, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, { Easing, FadeIn, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
-import AiSuggestions from "../components/AiSuggestions";
-import { useTheme } from "../context/ThemeContext";
-import { getSharedStyles, Theme, ThemeName } from "../styles/shared";
+import { SafeAreaView } from "react-native-safe-area-context";
+import AiSuggestions from "../../components/AiSuggestions";
+import { useTheme } from "../../context/ThemeContext";
+import { getSharedStyles, Theme, ThemeName } from "../../styles/shared";
 
 const ROUTINE = [
   { hour: 6, task: "🌞 Wake Up Slowly" }, 
@@ -24,18 +25,18 @@ const ROUTINE = [
 const REVERSED_ROUTINE = [...ROUTINE].reverse();
 
 const TASK_IMAGES: Record<string, ImageSourcePropType> = {
-  "🌞 Wake Up Slowly": require("./assets/images/pixel/wakeup.png"),
-  "💧 Drink Warm Water": require("./assets/images/pixel/water.png"),
-  "🧘 Light Stretching or Yoga": require("./assets/images/pixel/yoga.png"),
-  "🍵 Herbal Tea & Journaling": require("./assets/images/pixel/tea_journal.png"),
-  "🥣 Healthy Breakfast": require("./assets/images/pixel/breakfast.png"),
-  "📚 Learn Something Calm": require("./assets/images/pixel/study.png"),
-  "🥗 Light Lunch": require("./assets/images/pixel/lunch.png"),
-  "🌿 Nature Walk or Break": require("./assets/images/pixel/walk.png"),
-  "📝 Reflect on the Day": require("./assets/images/pixel/reflect.png"),
-  "🍽 Light Dinner": require("./assets/images/pixel/dinner.png"),
-  "🌙 Prepare for Sleep": require("./assets/images/pixel/prepare_sleep.png"),
-  "🛌 Sleep Early": require("./assets/images/pixel/sleep.png"),
+  "🌞 Wake Up Slowly": require("../assets/images/pixel/wakeup.png"),
+  "💧 Drink Warm Water": require("../assets/images/pixel/water.png"),
+  "🧘 Light Stretching or Yoga": require("../assets/images/pixel/yoga.png"),
+  "🍵 Herbal Tea & Journaling": require("../assets/images/pixel/tea_journal.png"),
+  "🥣 Healthy Breakfast": require("../assets/images/pixel/breakfast.png"),
+  "📚 Learn Something Calm": require("../assets/images/pixel/study.png"),
+  "🥗 Light Lunch": require("../assets/images/pixel/lunch.png"),
+  "🌿 Nature Walk or Break": require("../assets/images/pixel/walk.png"),
+  "📝 Reflect on the Day": require("../assets/images/pixel/reflect.png"),
+  "🍽 Light Dinner": require("../assets/images/pixel/dinner.png"),
+  "🌙 Prepare for Sleep": require("../assets/images/pixel/prepare_sleep.png"),
+  "🛌 Sleep Early": require("../assets/images/pixel/sleep.png"),
 };
 
 const TASK_THEME_MAP: Record<string, ThemeName> = {
@@ -84,7 +85,8 @@ const getStyles = (theme: Theme) => StyleSheet.create({
     backgroundColor: theme.colors.background 
   },
   scrollContainer: { 
-    flexGrow: 1 
+    flexGrow: 1,
+    paddingBottom: 120,
   },
   time: { 
     fontSize: 64, 
@@ -100,11 +102,7 @@ const getStyles = (theme: Theme) => StyleSheet.create({
     marginBottom: theme.spacing.xl, 
     alignItems: "center", 
     width: "90%", 
-    shadowColor: "#000", 
-    shadowOffset: { width: 0, height: 4 }, 
-    shadowOpacity: 0.1, 
-    shadowRadius: 8, 
-    elevation: 5 
+    boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.1)",
   },
   taskLabel: { 
     fontSize: 14, 

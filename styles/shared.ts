@@ -6,7 +6,7 @@ export interface Theme {
     primary: string;
     secondary: string;
     background: string;
-    white: string; // Note: This might be a dark color for text on light themes
+    white: string;
   };
   fonts: {
     regular: string;
@@ -22,6 +22,7 @@ export interface Theme {
   };
   borderRadius: {
     sm: number;
+    md: number;
     lg: number;
   };
 }
@@ -42,34 +43,37 @@ const baseTheme = {
   },
   borderRadius: {
     sm: 8,
+    md: 12,
     lg: 16,
-  },
-  shadows: {
-    soft: {
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
-    },
   },
 };
 
-// Expanded themes with pastel colors for every Pokémon on your list
 export const themes = {
-  default: { ...baseTheme, colors: { primary: "#A0AEC0", secondary: "#CBD5E0", background: "#F7FAFC", white: "#FFFFFF" } } as Theme,
-  pikachu: { ...baseTheme, colors: { primary: "#FDECB6", secondary: "#FAB4B4", background: "#FFFBEB", white: "#4A5568" } } as Theme,
-  squirtle: { ...baseTheme, colors: { primary: "#AEC6F5", secondary: "#E3C9B4", background: "#F0F5FF", white: "#FFFFFF" } } as Theme,
-  dragonite: { ...baseTheme, colors: { primary: "#FDD8B4", secondary: "#A8E6CF", background: "#FFF8F0", white: "#FFFFFF" } } as Theme,
-  mew: { ...baseTheme, colors: { primary: "#FAD0E0", secondary: "#DCDCF0", background: "#FEF6F8", white: "#FFFFFF" } } as Theme,
-  slowpoke: { ...baseTheme, colors: { primary: "#FBC8D4", secondary: "#FDF2B5", background: "#FEF3F5", white: "#4A5568" } } as Theme,
-  psyduck: { ...baseTheme, colors: { primary: "#FDECB6", secondary: "#D4D4B8", background: "#FFFBEB", white: "#4A5568" } } as Theme,
-  charizard: { ...baseTheme, colors: { primary: "#FAD0B0", secondary: "#AEC6F5", background: "#FEF1EB", white: "#FFFFFF" } } as Theme,
-  bulbasaur: { ...baseTheme, colors: { primary: "#B4E29E", secondary: "#9ED5E5", background: "#F1F9EE", white: "#FFFFFF" } } as Theme,
-  meowth: { ...baseTheme, colors: { primary: "#F0E6C0", secondary: "#D4C4B8", background: "#FCFAF1", white: "#4A5568" } } as Theme,
-  jigglypuff: { ...baseTheme, colors: { primary: "#FDD4E2", secondary: "#A8E6CF", background: "#FEF6F8", white: "#FFFFFF" } } as Theme,
-  gengar: { ...baseTheme, colors: { primary: "#D6C7F9", secondary: "#F5B8B4", background: "#F5F2FC", white: "#5A5266" } } as Theme,
-  snorlax: { ...baseTheme, colors: { primary: "#94C3C8", secondary: "#FDF9E9", background: "#EFF8F9", white: "#4A5568" } } as Theme,
+ default: { ...baseTheme, colors: { primary: "#6C757D", secondary: "#C8CDD0", background: "#F8F9FA", white: "#FFFFFF" } } as Theme,
+// Pikachu: Bright yellow primary, soft light red secondary
+ pikachu: { ...baseTheme, colors: { primary: "#F6D02F", secondary: "#FFB3B3", background: "#FFF9E6", white: "#FFFFFF" } } as Theme,
+// Squirtle: Light blue primary, lighter blue secondary
+ squirtle: { ...baseTheme, colors: { primary: "#66B2FF", secondary: "#7DB8E8", background: "#EAF6FF", white: "#FFFFFF" } } as Theme,
+// Dragonite: Warm orange primary, light mint secondary
+ dragonite: { ...baseTheme, colors: { primary: "#FF9A6B", secondary: "#C4E8DD", background: "#FFF6EC", white: "#FFFFFF" } } as Theme,
+// Mew: Soft pink primary, lighter pink secondary
+ mew: { ...baseTheme, colors: { primary: "#FFC0E6", secondary: "#FFD1EA", background: "#FFF6FB", white: "#FFFFFF" } } as Theme,
+// Slowpoke: Pastel pink primary, light cream secondary
+ slowpoke: { ...baseTheme, colors: { primary: "#FFB6C1", secondary: "#FFF8E7", background: "#FFF6F8", white: "#FFFFFF" } } as Theme,
+// Psyduck: Golden yellow primary, light gold secondary
+ psyduck: { ...baseTheme, colors: { primary: "#FFD54A", secondary: "#E8C266", background: "#FFFBE6", white: "#FFFFFF" } } as Theme,
+// Charizard: Fiery orange primary, light blue secondary
+ charizard: { ...baseTheme, colors: { primary: "#FF6A3D", secondary: "#7BA3CA", background: "#FFF4E9", white: "#FFFFFF" } } as Theme,
+// Bulbasaur: Green primary, light green secondary
+ bulbasaur: { ...baseTheme, colors: { primary: "#78C850", secondary: "#7BA070", background: "#F0FFF6", white: "#FFFFFF" } } as Theme,
+// Meowth: Warm cream primary, light brown secondary
+ meowth: { ...baseTheme, colors: { primary: "#F6E3B4", secondary: "#D4A574", background: "#FFFBF2", white: "#FFFFFF" } } as Theme,
+// Jigglypuff: Soft pink primary, light blue secondary
+ jigglypuff: { ...baseTheme, colors: { primary: "#FFB6E0", secondary: "#9BC7FF", background: "#FFF6FB", white: "#FFFFFF" } } as Theme,
+// Gengar: Moody purple primary, light red secondary
+ gengar: { ...baseTheme, colors: { primary: "#5B3E99", secondary: "#F19A95", background: "#F7F2FF", white: "#FFFFFF" } } as Theme,
+// Snorlax: Deep teal-blue primary, light cream secondary
+ snorlax: { ...baseTheme, colors: { primary: "#2E5E64", secondary: "#F5F1DC", background: "#F3FBFF", white: "#FFFFFF" } } as Theme,
 };
 
 export type ThemeName = keyof typeof themes;
@@ -79,8 +83,8 @@ export const getSharedStyles = (theme: Theme) => {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.colors.background },
     centeredContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: theme.spacing.xl },
-    heading: { fontSize: 28, fontWeight: 'bold', color: theme.colors.primary, textAlign: 'center' },
+    heading: { fontSize: 28, fontFamily: theme.fonts.bold, color: theme.colors.primary, textAlign: 'center' },
     primaryButton: { backgroundColor: theme.colors.primary, paddingVertical: theme.spacing.md, paddingHorizontal: theme.spacing.xl, borderRadius: theme.borderRadius.lg },
-    primaryButtonText: { color: theme.colors.white, fontSize: 16, fontWeight: 'bold', textAlign: 'center' },
+    primaryButtonText: { color: theme.colors.white, fontSize: 16, fontFamily: theme.fonts.bold, textAlign: 'center' },
   });
 };
