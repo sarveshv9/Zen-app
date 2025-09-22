@@ -50,35 +50,50 @@ const baseTheme = {
 
 export const themes = {
  default: { ...baseTheme, colors: { primary: "#6C757D", secondary: "#C8CDD0", background: "#F8F9FA", white: "#FFFFFF" } } as Theme,
-// Pikachu: Bright yellow primary, soft light red secondary
  pikachu: { ...baseTheme, colors: { primary: "#F6D02F", secondary: "#FFB3B3", background: "#FFF9E6", white: "#FFFFFF" } } as Theme,
-// Squirtle: Light blue primary, lighter blue secondary
  squirtle: { ...baseTheme, colors: { primary: "#66B2FF", secondary: "#7DB8E8", background: "#EAF6FF", white: "#FFFFFF" } } as Theme,
-// Dragonite: Warm orange primary, light mint secondary
  dragonite: { ...baseTheme, colors: { primary: "#FF9A6B", secondary: "#C4E8DD", background: "#FFF6EC", white: "#FFFFFF" } } as Theme,
-// Mew: Soft pink primary, lighter pink secondary
  mew: { ...baseTheme, colors: { primary: "#FFC0E6", secondary: "#FFD1EA", background: "#FFF6FB", white: "#FFFFFF" } } as Theme,
-// Slowpoke: Pastel pink primary, light cream secondary
  slowpoke: { ...baseTheme, colors: { primary: "#FFB6C1", secondary: "#FFF8E7", background: "#FFF6F8", white: "#FFFFFF" } } as Theme,
-// Psyduck: Golden yellow primary, light gold secondary
  psyduck: { ...baseTheme, colors: { primary: "#FFD54A", secondary: "#E8C266", background: "#FFFBE6", white: "#FFFFFF" } } as Theme,
-// Charizard: Fiery orange primary, light blue secondary
  charizard: { ...baseTheme, colors: { primary: "#FF6A3D", secondary: "#7BA3CA", background: "#FFF4E9", white: "#FFFFFF" } } as Theme,
-// Bulbasaur: Green primary, light green secondary
  bulbasaur: { ...baseTheme, colors: { primary: "#78C850", secondary: "#7BA070", background: "#F0FFF6", white: "#FFFFFF" } } as Theme,
-// Meowth: Warm cream primary, light brown secondary
  meowth: { ...baseTheme, colors: { primary: "#F6E3B4", secondary: "#D4A574", background: "#FFFBF2", white: "#FFFFFF" } } as Theme,
-// Jigglypuff: Soft pink primary, light blue secondary
  jigglypuff: { ...baseTheme, colors: { primary: "#FFB6E0", secondary: "#9BC7FF", background: "#FFF6FB", white: "#FFFFFF" } } as Theme,
-// Gengar: Moody purple primary, light red secondary
  gengar: { ...baseTheme, colors: { primary: "#5B3E99", secondary: "#F19A95", background: "#F7F2FF", white: "#FFFFFF" } } as Theme,
-// Snorlax: Deep teal-blue primary, light cream secondary
  snorlax: { ...baseTheme, colors: { primary: "#2E5E64", secondary: "#F5F1DC", background: "#F3FBFF", white: "#FFFFFF" } } as Theme,
 };
 
-export type ThemeName = keyof typeof themes;
+export const lightThemes: Record<string, Theme> = {};
 
-// Function to generate shared styles dynamically based on the current theme
+const lightBackground = "#F8F9FA";
+const lightSecondary = "#6C757D";
+
+Object.keys(themes).forEach(themeKey => {
+  if (themeKey !== 'default') {
+    const heavyTheme = themes[themeKey as keyof typeof themes];
+    lightThemes[themeKey] = {
+      ...baseTheme,
+      colors: {
+        primary: heavyTheme.colors.primary,
+        secondary: lightSecondary,
+        background: lightBackground,
+        white: "#FFFFFF",
+      },
+    };
+  }
+});
+
+// --- UPDATED TYPE DEFINITIONS ---
+// Base names like "pikachu", "squirtle", etc.
+type HeavyThemeName = keyof typeof themes;
+// Light variations like "light-pikachu", "light-squirtle", etc.
+type LightThemeName = `light-${Exclude<HeavyThemeName, 'default'>}`;
+// A single, comprehensive type for all possible theme names.
+export type ThemeName = HeavyThemeName | LightThemeName;
+
+
+// This function remains unchanged and works with any theme object you pass it
 export const getSharedStyles = (theme: Theme) => {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.colors.background },

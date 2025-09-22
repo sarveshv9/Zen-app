@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useTheme } from '../context/ThemeContext';
@@ -13,7 +13,6 @@ const DEFAULT_TIP: Tip[] = [
     { id: 'default-1', text: 'Take a moment to notice your breath. In and out.' }
 ];
 
-// [CHANGE] Renamed component to match filename
 const AiSuggestions: React.FC<{ currentTask?: string }> = ({ currentTask }) => {
   const { theme } = useTheme();
   const styles = useMemo(() => getStyles(theme), [theme]);
@@ -21,6 +20,9 @@ const AiSuggestions: React.FC<{ currentTask?: string }> = ({ currentTask }) => {
   const [tips, setTips] = useState<Tip[]>(DEFAULT_TIP);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // 1. ADD A REF to remember the last task we fetched.
+  const lastFetchedTask = useRef<string | null>(null);
 
   const fetchTips = useCallback(async () => {
     setIsLoading(true);
@@ -32,7 +34,6 @@ const AiSuggestions: React.FC<{ currentTask?: string }> = ({ currentTask }) => {
 
       const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
 
-      // [CHANGE] Updated prompt to be more thematic and zen-like
       const prompt = `For the task "${currentTask}", provide one short, calming, zen-like thought or tip. The tip should be encouraging and simple, max 20 words. It could be inspired by a Pokémon's nature. Format as just the sentence.`;
 
       const response = await fetch(apiUrl, {
@@ -51,31 +52,33 @@ const AiSuggestions: React.FC<{ currentTask?: string }> = ({ currentTask }) => {
 
       if (!generatedText) throw new Error('No content received from AI');
       
-      // [CHANGE] Simplified parsing for a single tip
       const parsedTips: Tip[] = [{
           id: `ai-tip-1`,
-          text: generatedText.trim().replace(/^["']|["']$/g, ''), // Clean up quotes
+          text: generatedText.trim().replace(/^["']|["']$/g, ''),
       }];
 
       setTips(parsedTips);
     } catch (err: any) {
       console.error('Error fetching AI tip:', err.message);
       setError('Could not fetch a new tip.');
-      // [CHANGE] Fallback to default tip on error
       setTips(DEFAULT_TIP); 
     } finally {
       setIsLoading(false);
     }
   }, [currentTask]);
 
+  // 2. REPLACE your useEffect with this improved version.
   useEffect(() => {
-    fetchTips();
-  }, [fetchTips]);
+    // ONLY fetch if the task is new AND different from the last one.
+    if (currentTask && currentTask !== lastFetchedTask.current) {
+      fetchTips();
+      lastFetchedTask.current = currentTask; // Remember this task.
+    }
+  }, [currentTask, fetchTips]);
 
   return (
     <Animated.View entering={FadeIn.duration(600)} style={styles.container}>
       <View style={styles.header}>
-        {/* [CHANGE] Updated title */}
         <Text style={styles.title}>✨ Zen Tip</Text>
         <Pressable
           style={({ pressed }) => [styles.refreshButton, pressed && styles.refreshButtonPressed]}
@@ -106,16 +109,14 @@ const AiSuggestions: React.FC<{ currentTask?: string }> = ({ currentTask }) => {
   );
 };
 
-// [CHANGE] Added Theme type and fixed styles to use valid theme properties
 const getStyles = (theme: Theme) => StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.white, // Changed from accent
+    backgroundColor: theme.colors.white,
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.lg,
     marginHorizontal: theme.spacing.lg,
     marginTop: theme.spacing.md,
     marginBottom: theme.spacing.xl,
-    // Ensure you have a 'shadows' object in your theme for this to work
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -134,7 +135,7 @@ const getStyles = (theme: Theme) => StyleSheet.create({
     color: theme.colors.primary,
   },
   content: {
-    minHeight: 60, // Reduced height
+    minHeight: 60,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -153,7 +154,7 @@ const getStyles = (theme: Theme) => StyleSheet.create({
     paddingHorizontal: theme.spacing.sm,
   },
   quoteText: {
-    fontSize: 16, // Made text slightly larger
+    fontSize: 16,
     fontFamily: theme.fonts.regular,
     color: theme.colors.primary,
     lineHeight: 24,

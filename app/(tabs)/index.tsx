@@ -5,20 +5,21 @@ import Animated, { Easing, FadeIn, useAnimatedStyle, useSharedValue, withRepeat,
 import { SafeAreaView } from "react-native-safe-area-context";
 import AiSuggestions from "../../components/AiSuggestions";
 import { useTheme } from "../../context/ThemeContext";
-import { getSharedStyles, Theme, ThemeName } from "../../styles/shared";
+// **FIXED**: Make sure ThemeName is imported from shared.ts
+import { getSharedStyles, Theme, ThemeName, themes } from "../../styles/shared";
 
 const ROUTINE = [
-  { hour: 6, task: "🌞 Wake Up Slowly" }, 
+  { hour: 6, task: "🌞 Wake Up Slowly" },
   { hour: 6.5, task: "💧 Drink Warm Water" },
-  { hour: 7, task: "🧘 Light Stretching or Yoga" }, 
+  { hour: 7, task: "🧘 Light Stretching or Yoga" },
   { hour: 8, task: "🍵 Herbal Tea & Journaling" },
-  { hour: 9, task: "🥣 Healthy Breakfast" }, 
+  { hour: 9, task: "🥣 Healthy Breakfast" },
   { hour: 10, task: "📚 Learn Something Calm" },
-  { hour: 13, task: "🥗 Light Lunch" }, 
+  { hour: 13, task: "🥗 Light Lunch" },
   { hour: 15, task: "🌿 Nature Walk or Break" },
-  { hour: 17, task: "📝 Reflect on the Day" }, 
+  { hour: 17, task: "📝 Reflect on the Day" },
   { hour: 19, task: "🍽 Light Dinner" },
-  { hour: 21, task: "🌙 Prepare for Sleep" }, 
+  { hour: 21, task: "🌙 Prepare for Sleep" },
   { hour: 22, task: "🛌 Sleep Early" },
 ];
 
@@ -39,29 +40,31 @@ const TASK_IMAGES: Record<string, ImageSourcePropType> = {
   "🛌 Sleep Early": require("../assets/images/pixel/sleep.png"),
 };
 
-const TASK_THEME_MAP: Record<string, ThemeName> = {
-  "🌞 Wake Up Slowly": "pikachu", 
+// **FIXED**: Simplified the type to ensure this map only contains base theme names.
+const TASK_THEME_MAP: Record<string, keyof typeof themes> = {
+  "🌞 Wake Up Slowly": "pikachu",
   "💧 Drink Warm Water": "squirtle",
-  "🧘 Light Stretching or Yoga": "dragonite", 
+  "🧘 Light Stretching or Yoga": "dragonite",
   "🍵 Herbal Tea & Journaling": "mew",
-  "🥣 Healthy Breakfast": "slowpoke", 
+  "🥣 Healthy Breakfast": "slowpoke",
   "📚 Learn Something Calm": "psyduck",
-  "🥗 Light Lunch": "charizard", 
+  "🥗 Light Lunch": "charizard",
   "🌿 Nature Walk or Break": "bulbasaur",
-  "📝 Reflect on the Day": "meowth", 
+  "📝 Reflect on the Day": "meowth",
   "🍽 Light Dinner": "jigglypuff",
-  "🌙 Prepare for Sleep": "gengar", 
+  "🌙 Prepare for Sleep": "gengar",
   "🛌 Sleep Early": "snorlax",
 };
 
+// ... rest of the file is unchanged ...
 const useCurrentTime = () => {
   const [time, setTime] = useState(() => new Date());
-  
+
   useEffect(() => {
     const intervalId = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(intervalId);
   }, []);
-  
+
   return time;
 };
 
@@ -80,79 +83,83 @@ const getCurrentTask = (now: Date): string => {
 };
 
 const getStyles = (theme: Theme) => StyleSheet.create({
-  safeArea: { 
-    flex: 1, 
-    backgroundColor: theme.colors.background 
+  safeArea: {
+    flex: 1,
+    backgroundColor: theme.colors.background
   },
-  scrollContainer: { 
+  scrollContainer: {
     flexGrow: 1,
     paddingBottom: 120,
   },
-  time: { 
-    fontSize: 64, 
-    color: theme.colors.primary, 
-    marginBottom: 24, 
-    fontFamily: theme.fonts.bold, 
-    letterSpacing: -2 
+  time: {
+    fontSize: 64,
+    color: theme.colors.primary,
+    marginBottom: 24,
+    fontFamily: theme.fonts.bold,
+    letterSpacing: -2
   },
-  taskContainer: { 
-    backgroundColor: theme.colors.white, 
-    borderRadius: 16, 
-    padding: theme.spacing.xl, 
-    marginBottom: theme.spacing.xl, 
-    alignItems: "center", 
-    width: "90%", 
-    boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.1)",
+  taskContainer: {
+    backgroundColor: theme.colors.white,
+    borderRadius: 16,
+    padding: theme.spacing.xl,
+    marginBottom: theme.spacing.xl,
+    alignItems: "center",
+    width: "90%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
   },
-  taskLabel: { 
-    fontSize: 14, 
-    color: theme.colors.secondary, 
-    fontFamily: theme.fonts.medium, 
-    marginBottom: theme.spacing.xs, 
-    textTransform: "uppercase", 
-    letterSpacing: 1 
+  taskLabel: {
+    fontSize: 14,
+    color: theme.colors.secondary,
+    fontFamily: theme.fonts.medium,
+    marginBottom: theme.spacing.xs,
+    textTransform: "uppercase",
+    letterSpacing: 1
   },
-  task: { 
-    fontSize: 20, 
-    color: theme.colors.primary, 
-    fontFamily: theme.fonts.bold, 
-    textAlign: "center" 
+  task: {
+    fontSize: 20,
+    color: theme.colors.primary,
+    fontFamily: theme.fonts.bold,
+    textAlign: "center"
   },
-  imageContainer: { 
-    marginBottom: theme.spacing.xl 
+  imageContainer: {
+    marginBottom: theme.spacing.xl
   },
-  taskImage: { 
-    width: 140, 
-    height: 180 
+  taskImage: {
+    width: 140,
+    height: 180
   },
-  quote: { 
-    fontSize: 16, 
-    fontFamily: theme.fonts.regular, 
-    fontStyle: 'italic', 
-    color: theme.colors.secondary, 
-    marginBottom: theme.spacing.md, 
-    textAlign: "center", 
-    opacity: 0.8 
+  quote: {
+    fontSize: 16,
+    fontFamily: theme.fonts.regular,
+    fontStyle: 'italic',
+    color: theme.colors.secondary,
+    marginBottom: theme.spacing.md,
+    textAlign: "center",
+    opacity: 0.8
   },
-  startButton: { 
-    marginTop: theme.spacing.lg, 
-    paddingVertical: theme.spacing.lg, 
-    paddingHorizontal: 24 
+  startButton: {
+    marginTop: theme.spacing.lg,
+    paddingVertical: theme.spacing.lg,
+    paddingHorizontal: 24
   },
-  startButtonPressed: { 
-    transform: [{ scale: 0.98 }], 
-    opacity: 0.9 
+  startButtonPressed: {
+    transform: [{ scale: 0.98 }],
+    opacity: 0.9
   },
-  startButtonText: { 
-    fontSize: 18, 
-    letterSpacing: 0.5 
+  startButtonText: {
+    fontSize: 18,
+    letterSpacing: 0.5
   },
 });
 
 function HomeScreen() {
   const router = useRouter();
   const currentTime = useCurrentTime();
-  const { theme, changeTheme } = useTheme();
+  const { theme, themeName, changeTheme } = useTheme();
 
   const formattedTime = useMemo(() => formatTime(currentTime), [currentTime]);
   const currentTask = useMemo(() => getCurrentTask(currentTime), [currentTime]);
@@ -161,20 +168,30 @@ function HomeScreen() {
   const sharedStyles = useMemo(() => getSharedStyles(theme), [theme]);
 
   useEffect(() => {
-    const themeName = TASK_THEME_MAP[currentTask] || 'default';
-    changeTheme(themeName);
-  }, [currentTask, changeTheme]);
+    const isLightMode = themeName.startsWith('light-');
+    const newBaseTheme = TASK_THEME_MAP[currentTask] || 'default';
+
+    let newThemeName: ThemeName = newBaseTheme;
+    if (isLightMode && newBaseTheme !== 'default') {
+      newThemeName = `light-${newBaseTheme}`;
+    }
+
+    const currentBaseTheme = isLightMode ? themeName.substring(6) : themeName;
+    if (newBaseTheme !== currentBaseTheme) {
+      changeTheme(newThemeName);
+    }
+  }, [currentTask, themeName, changeTheme]);
 
   const breatheScale = useSharedValue(1);
-  
+
   useEffect(() => {
     breatheScale.value = withRepeat(
       withTiming(1.05, { duration: 2000, easing: Easing.inOut(Easing.sin) }),
-      -1, 
-      true 
+      -1,
+      true
     );
   }, [breatheScale]);
-  
+
   const animatedImageStyle = useAnimatedStyle(() => ({
     transform: [{ scale: breatheScale.value }],
   }));
@@ -190,31 +207,31 @@ function HomeScreen() {
           <Animated.Text entering={FadeIn.duration(800)} style={styles.time}>
             {formattedTime}
           </Animated.Text>
-          
+
           <Animated.View entering={FadeIn.duration(600).delay(200)} style={styles.taskContainer}>
             <Text style={styles.taskLabel}>Current Focus</Text>
             <Text style={styles.task}>{currentTask}</Text>
           </Animated.View>
-          
+
           <Animated.View entering={FadeIn.duration(800).delay(400)} style={[styles.imageContainer, animatedImageStyle]}>
             {taskImage && (
-              <Animated.Image 
-                source={taskImage} 
-                style={styles.taskImage} 
-                resizeMode="contain" 
+              <Animated.Image
+                source={taskImage}
+                style={styles.taskImage}
+                resizeMode="contain"
               />
             )}
           </Animated.View>
-          
+
           <Animated.Text entering={FadeIn.duration(600).delay(600)} style={styles.quote}>
             "Start your day with calm"
           </Animated.Text>
-          
+
           <Animated.View entering={FadeIn.duration(600).delay(800)}>
             <Pressable
               style={({ pressed }) => [
-                sharedStyles.primaryButton, 
-                styles.startButton, 
+                sharedStyles.primaryButton,
+                styles.startButton,
                 pressed && styles.startButtonPressed
               ]}
               onPress={handleStartDay}

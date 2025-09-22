@@ -1,15 +1,17 @@
-import React, { createContext, ReactNode, useContext, useState } from 'react';
-import { Theme, ThemeName, themes } from '../styles/shared';
+import React, { createContext, ReactNode, useCallback, useContext, useMemo, useState } from 'react';
+import { lightThemes, Theme, ThemeName, themes } from '../styles/shared';
 
 // Define the shape of the context value
 interface ThemeContextType {
   theme: Theme;
+  themeName: ThemeName;
   changeTheme: (name: ThemeName) => void;
 }
 
 // Create the context with a default value
 const ThemeContext = createContext<ThemeContextType>({
   theme: themes.default,
+  themeName: 'default',
   changeTheme: () => {},
 });
 
@@ -17,19 +19,44 @@ const ThemeContext = createContext<ThemeContextType>({
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [themeName, setThemeName] = useState<ThemeName>('default');
 
-  const changeTheme = (name: ThemeName) => {
+  const changeTheme = useCallback((name: ThemeName) => {
     setThemeName(name);
+  }, []);
+
+  // **FIXED**: This function now correctly separates logic for light and heavy themes.
+  const getTheme = (name: ThemeName): Theme => {
+    if (name.startsWith('light-')) {
+      const baseName = name.substring(6);
+      // Look for the base name ONLY in the lightThemes object
+      if (baseName in lightThemes) {
+        return lightThemes[baseName];
+      }
+    } else {
+      // Look for the name ONLY in the heavy themes object
+      if (name in themes) {
+        return themes[name as keyof typeof themes];
+      }
+    }
+    // Fallback to the default theme if nothing is found
+    return themes.default;
   };
 
-  // Get the current theme object, falling back to default if the name is invalid
-  const theme = themes[themeName] || themes.default;
+  const theme = getTheme(themeName);
+
+  const value = useMemo(() => ({
+    theme,
+    themeName,
+    changeTheme
+  }), [theme, themeName, changeTheme]);
 
   return (
-    <ThemeContext.Provider value={{ theme, changeTheme }}>
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   );
 };
 
-// Create a custom hook for easy access to the theme in any component
-export const useTheme = () => useContext(ThemeContext);
+// Custom hook for easy access to the theme
+export const useTheme = () => {
+  return useContext(ThemeContext);
+};
