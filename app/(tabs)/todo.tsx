@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback, useMemo, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -16,12 +17,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { getSharedStyles, Theme } from "../../constants/shared";
 import { useTheme } from "../../context/ThemeContext";
 
+// Constants
+const STORAGE_KEY = "@todo_tasks";
+
 // Types
 interface Task {
   id: string;
   text: string;
   completed: boolean;
-  createdAt: Date;
+  createdAt: string; // Changed to string for JSON serialization
   category: "today" | "later";
 }
 
@@ -52,9 +56,31 @@ const createNewTask = (text: string, category: TaskCategory): Task => ({
   id: generateTaskId(),
   text,
   completed: false,
-  createdAt: new Date(),
+  createdAt: new Date().toISOString(),
   category,
 });
+
+// Storage Functions
+const loadTasks = async (): Promise<Task[]> => {
+  try {
+    const tasksJson = await AsyncStorage.getItem(STORAGE_KEY);
+    if (tasksJson) {
+      return JSON.parse(tasksJson);
+    }
+    return [];
+  } catch (error) {
+    console.error("Error loading tasks:", error);
+    return [];
+  }
+};
+
+const saveTasks = async (tasks: Task[]): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  } catch (error) {
+    console.error("Error saving tasks:", error);
+  }
+};
 
 // Task Item Component
 const TaskItem = React.memo<TaskItemProps>(
@@ -62,19 +88,11 @@ const TaskItem = React.memo<TaskItemProps>(
     const styles = useMemo(() => getStyles(theme), [theme]);
 
     const handleDelete = useCallback(() => {
-      Alert.alert(
-        "Delete Task",
-        `Are you sure you want to delete "${task.text}"?`,
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Delete",
-            style: "destructive",
-            onPress: () => onDelete(task.id),
-          },
-        ]
-      );
-    }, [task.id, task.text, onDelete]);
+      // --- MODIFICATION ---
+      // Delete directly instead of showing an alert
+      onDelete(task.id);
+      // --------------------
+    }, [task.id, onDelete]); // No longer needs task.text
 
     const iconName = task.completed ? "checkmark-circle" : "ellipse-outline";
     const iconColor = task.completed
@@ -126,7 +144,7 @@ const TaskModal = React.memo<TaskModalProps>(
     const isEditing = !!task;
 
     // Reset modal state when visibility changes
-    React.useEffect(() => {
+    useEffect(() => {
       if (visible) {
         if (task) {
           setTaskText(task.text);
@@ -301,8 +319,26 @@ export default function TodoScreen() {
   const sharedStyles = useMemo(() => getSharedStyles(theme), [theme]);
 
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+
+  // Load tasks on mount
+  useEffect(() => {
+    const initializeTasks = async () => {
+      const loadedTasks = await loadTasks();
+      setTasks(loadedTasks);
+      setIsLoading(false);
+    };
+    initializeTasks();
+  }, []);
+
+  // Save tasks whenever they change
+  useEffect(() => {
+    if (!isLoading) {
+      saveTasks(tasks);
+    }
+  }, [tasks, isLoading]);
 
   // Computed values
   const { todayTasks, laterTasks, completedCount, totalCount } = useMemo(() => {
@@ -363,6 +399,7 @@ export default function TodoScreen() {
   }, []);
 
   const handleDeleteTask = useCallback((id: string) => {
+    // Cleaned up - no logs
     setTasks((prev) => prev.filter((task) => task.id !== id));
   }, []);
 
@@ -393,6 +430,17 @@ export default function TodoScreen() {
   }, [completedCount]);
 
   const hasCompletedTasks = totalCount > 0 && completedCount > 0;
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <SafeAreaView style={sharedStyles.container}>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Loading tasks...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={sharedStyles.container}>
@@ -483,6 +531,16 @@ const getStyles = (theme: Theme) =>
       paddingHorizontal: theme.spacing.lg,
       paddingTop: 60,
       paddingBottom: theme.spacing.xl,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    loadingText: {
+      fontSize: 16,
+      fontFamily: theme.fonts.medium,
+      color: theme.colors.secondary,
     },
     header: { marginBottom: theme.spacing.xl },
     heading: { marginBottom: theme.spacing.sm },
