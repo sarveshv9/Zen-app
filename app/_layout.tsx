@@ -6,6 +6,9 @@ import { StatusBar } from "expo-status-bar";
 import { View } from "react-native";
 import { ThemeProvider } from "../context/ThemeContext";
 
+// 1. ADD THIS IMPORT
+import { AudioProvider } from "../context/AudioContext";
+
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     UbuntuLightI: require("./assets/fonts/Ubuntu-LightItalic.ttf"),
@@ -20,13 +23,14 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider>
-      <StatusBar style="dark" />
-      {/* CHANGE IS HERE VVV */}
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="routine" options={{ headerShown: false }} />
-      </Stack>
-      {/* CHANGE IS HERE ^^^ */}
+      {/* 2. WRAP YOUR STACK WITH AUDIOPROVIDER */}
+      <AudioProvider>
+        <StatusBar style="dark" />
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="routine" options={{ headerShown: false }} />
+        </Stack>
+      </AudioProvider>
     </ThemeProvider>
   );
 }

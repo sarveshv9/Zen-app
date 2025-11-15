@@ -5,8 +5,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import RoutineCard from "../components/RoutineCard";
 import TaskForm from "../components/TaskForm";
 import TaskModal from "../components/TaskModal";
+import { getSharedStyles, Theme } from "../constants/shared";
 import { useTheme } from "../context/ThemeContext";
-import { getSharedStyles, Theme } from "../styles/shared";
 import { FormData, RoutineItem, sortRoutineItems } from "../utils/utils";
 
 const DEFAULT_IMAGE = require("./assets/images/pixel/breathe.png");

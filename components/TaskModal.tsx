@@ -8,8 +8,8 @@ import {
   Text,
   View,
 } from "react-native";
+import { Theme } from "../constants/shared";
 import { useTheme } from "../context/ThemeContext";
-import { Theme } from "../styles/shared";
 import { RoutineItem } from "../utils/utils";
 
 interface TaskModalProps {

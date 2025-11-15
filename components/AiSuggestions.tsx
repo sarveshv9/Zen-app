@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
+import { Theme } from '../constants/shared';
 import { useTheme } from '../context/ThemeContext';
-import { Theme } from '../styles/shared';
 
 interface Tip {
   id: string;
