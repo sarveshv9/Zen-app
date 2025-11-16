@@ -1,7 +1,10 @@
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  AccessibilityRole,
+  Dimensions,
   ImageSourcePropType,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -26,6 +29,7 @@ import {
 } from "../../constants/shared";
 import { useTheme } from "../../context/ThemeContext";
 
+/* ---------- Constants & Assets ---------- */
 const ROUTINE = [
   { hour: 6, task: "🌞 Wake Up Slowly" },
   { hour: 6.5, task: "💧 Drink Warm Water" },
@@ -41,6 +45,7 @@ const ROUTINE = [
   { hour: 22, task: "🛌 Sleep Early" },
 ];
 const REVERSED_ROUTINE = [...ROUTINE].reverse();
+
 const TASK_IMAGES: Record<string, ImageSourcePropType> = {
   "🌞 Wake Up Slowly": require("../assets/images/pixel/wakeup.png"),
   "💧 Drink Warm Water": require("../assets/images/pixel/water.png"),
@@ -55,6 +60,7 @@ const TASK_IMAGES: Record<string, ImageSourcePropType> = {
   "🌙 Prepare for Sleep": require("../assets/images/pixel/prepare_sleep.png"),
   "🛌 Sleep Early": require("../assets/images/pixel/sleep.png"),
 };
+
 const TASK_THEME_MAP: Record<string, keyof typeof themes> = {
   "🌞 Wake Up Slowly": "pikachu",
   "💧 Drink Warm Water": "squirtle",
@@ -70,97 +76,183 @@ const TASK_THEME_MAP: Record<string, keyof typeof themes> = {
   "🛌 Sleep Early": "snorlax",
 };
 
+/* ---------- Hooks & Helpers ---------- */
 const useCurrentTime = () => {
   const [time, setTime] = useState(() => new Date());
   useEffect(() => {
-    const intervalId = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(intervalId);
+    const id = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(id);
   }, []);
   return time;
 };
 
-const formatTime = (date: Date): string => {
-  return date.toLocaleTimeString("en-US", {
+const formatTime = (date: Date): string =>
+  date.toLocaleTimeString("en-US", {
     hour: "numeric",
     minute: "2-digit",
     hour12: true,
   });
-};
 
 const getCurrentTask = (now: Date): string => {
   const currentHour = now.getHours() + now.getMinutes() / 60;
-  const currentTask = REVERSED_ROUTINE.find((r) => currentHour >= r.hour)?.task;
-  return currentTask || "🌸 Just Breathe";
+  return REVERSED_ROUTINE.find((r) => currentHour >= r.hour)?.task || "🌸 Just Breathe";
 };
 
+/* ---------- Responsive helpers ---------- */
+const { width: WINDOW_WIDTH } = Dimensions.get("window");
+const CARD_MAX_WIDTH = Math.min(760, WINDOW_WIDTH - 48);
+
+/* ---------- Styles generator (theme-aware) ---------- */
 const getStyles = (theme: Theme) =>
   StyleSheet.create({
-    safeArea: { flex: 1, backgroundColor: theme.colors.background },
-    scrollContainer: { flexGrow: 1, paddingBottom: 120 },
-    time: {
-      fontSize: 64,
-      color: theme.colors.primary,
-      marginBottom: 24,
-      fontFamily: theme.fonts.bold,
-      letterSpacing: -2,
+    safeArea: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
     },
-    taskContainer: {
-      backgroundColor: theme.colors.white,
-      borderRadius: 16,
-      padding: theme.spacing.xl,
-      marginBottom: theme.spacing.xl,
+    scrollContent: {
+      paddingVertical: 28,
+      paddingHorizontal: 20,
       alignItems: "center",
-      width: "90%",
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.1,
-      shadowRadius: 8,
-      elevation: 5,
+      gap: 18,
     },
-    taskLabel: {
+    container: {
+      width: "100%",
+      maxWidth: CARD_MAX_WIDTH,
+      alignItems: "center",
+    },
+
+    /* Time */
+    time: {
+      fontSize: Math.max(36, Math.round(WINDOW_WIDTH * 0.12)), // responsive
+      color: theme.colors.primary,
+      fontFamily: theme.fonts.bold,
+      letterSpacing: -1,
+      marginBottom: 8,
+      textAlign: "center",
+    },
+    timeSub: {
       fontSize: 14,
       color: theme.colors.secondary,
       fontFamily: theme.fonts.medium,
-      marginBottom: theme.spacing.xs,
-      textTransform: "uppercase",
-      letterSpacing: 1,
+      marginTop: 18,
+      opacity: 0.9,
     },
-    task: {
-      fontSize: 20,
+
+    /* Card */
+    card: {
+      width: "100%",
+      backgroundColor: theme.colors.white,
+      borderRadius: 16,
+      paddingVertical: 18,
+      paddingHorizontal: 18,
+      alignItems: "center",
+      marginBottom: 14,
+      // cross-platform elevation
+      ...Platform.select({
+        ios: {
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.08,
+          shadowRadius: 18,
+        },
+        android: {
+          elevation: 6,
+        },
+      }),
+    },
+    cardLabel: {
+      alignSelf: "flex-start",
+      fontSize: 12,
+      color: theme.colors.secondary,
+      fontFamily: theme.fonts.medium,
+      textTransform: "uppercase",
+      letterSpacing: 0.8,
+      marginBottom: 6,
+    },
+    taskText: {
+      fontSize: 18,
       color: theme.colors.primary,
       fontFamily: theme.fonts.bold,
       textAlign: "center",
+      lineHeight: 24,
+      marginBottom: 12,
     },
-    imageContainer: { marginBottom: theme.spacing.xl },
-    taskImage: { width: 140, height: 180 },
+
+    /* Image area */
+    artworkWrapper: {
+      width: "100%",
+      alignItems: "center",
+      marginBottom: 14,
+    },
+    taskImage: {
+      width: Math.min(220, Math.round(WINDOW_WIDTH * 0.45)),
+      height: Math.min(260, Math.round(WINDOW_WIDTH * 0.55)),
+    },
+    fallbackDot: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      backgroundColor: theme.colors.primary,
+      opacity: 0.08,
+      marginBottom: 12,
+    },
+
+    /* Quote */
     quote: {
-      fontSize: 16,
+      fontSize: 15,
+      color: theme.colors.secondary,
       fontFamily: theme.fonts.regular,
       fontStyle: "italic",
-      color: theme.colors.secondary,
-      marginBottom: theme.spacing.md,
       textAlign: "center",
-      opacity: 0.8,
+      marginBottom: 18,
+      opacity: 0.85,
     },
-    startButton: {
-      marginTop: theme.spacing.lg,
-      paddingVertical: theme.spacing.lg,
-      paddingHorizontal: 24,
+
+    /* Button */
+    primaryButton: {
+      width: "100%",
+      borderRadius: 12,
+      paddingVertical: 14,
+      alignItems: "center",
+      justifyContent: "center",
+      marginTop: 4,
     },
-    startButtonPressed: { transform: [{ scale: 0.98 }], opacity: 0.9 },
-    startButtonText: { fontSize: 18, letterSpacing: 0.5 },
+    primaryButtonText: {
+      fontSize: 16,
+      fontFamily: theme.fonts.bold,
+      color: theme.colors.white,
+      letterSpacing: 0.2,
+    },
+
+    /* Misc */
+    suggestionsWrapper: {
+      width: "100%",
+      marginTop: 10,
+    },
+
+    /* Accessibility helpers */
+    touchableHitSlop: {
+      top: 10,
+      bottom: 10,
+      left: 10,
+      right: 10,
+    },
   });
 
+/* ---------- Component ---------- */
 function HomeScreen() {
   const router = useRouter();
   const currentTime = useCurrentTime();
   const { theme, themeName, setThemeName } = useTheme();
+
   const formattedTime = useMemo(() => formatTime(currentTime), [currentTime]);
   const currentTask = useMemo(() => getCurrentTask(currentTime), [currentTime]);
   const taskImage = useMemo(() => TASK_IMAGES[currentTask], [currentTask]);
+
   const styles = useMemo(() => getStyles(theme), [theme]);
   const sharedStyles = useMemo(() => getSharedStyles(theme), [theme]);
 
+  /* sync theme base with task */
   useEffect(() => {
     const isLightMode = themeName.startsWith("light-");
     const newBaseTheme = TASK_THEME_MAP[currentTask] || "default";
@@ -168,84 +260,100 @@ function HomeScreen() {
     if (isLightMode && newBaseTheme !== "default") {
       newThemeName = `light-${newBaseTheme}`;
     }
-    const currentBaseTheme = isLightMode
-      ? themeName.substring(6)
-      : themeName;
+    const currentBaseTheme = isLightMode ? themeName.substring(6) : themeName;
     if (newBaseTheme !== currentBaseTheme) {
       setThemeName(newThemeName);
     }
-  }, [currentTask, themeName, setThemeName]);
+  }, [currentTask, setThemeName, themeName]);
 
+  /* breathing animation */
   const breatheScale = useSharedValue(1);
   useEffect(() => {
     breatheScale.value = withRepeat(
-      withTiming(1.05, { duration: 2000, easing: Easing.inOut(Easing.sin) }),
+      withTiming(1.05, { duration: 2200, easing: Easing.inOut(Easing.sin) }),
       -1,
       true
     );
   }, [breatheScale]);
-
   const animatedImageStyle = useAnimatedStyle(() => ({
     transform: [{ scale: breatheScale.value }],
   }));
 
+  /* actions */
   const handleStartDay = useCallback(() => router.push("/routine"), [router]);
+
+  /* accessibility roles */
+  const buttonRole: AccessibilityRole = "button";
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
-        contentContainerStyle={styles.scrollContainer}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        accessibilityRole="scrollbar"
       >
-        <View style={sharedStyles.centeredContainer}>
-          <Animated.View entering={FadeIn.duration(800)}>
-            <Text style={styles.time}>{formattedTime}</Text>
+        <View style={styles.container}>
+          <Animated.View entering={FadeIn.duration(600)}>
+            <Text style={styles.timeSub} aria-hidden>
+              {new Date().toLocaleDateString()}
+            </Text>
+            <Text
+              style={styles.time}
+              accessibilityLabel={`Current time ${formattedTime}`}
+              accessible
+            >
+              {formattedTime}
+            </Text>
+  
           </Animated.View>
-          <Animated.View
-            entering={FadeIn.duration(600).delay(200)}
-            style={styles.taskContainer}
-          >
-            <Text style={styles.taskLabel}>Current Focus</Text>
-            <Text style={styles.task}>{currentTask}</Text>
-          </Animated.View>
-          <Animated.View
-            entering={FadeIn.duration(800).delay(400)}
-            style={[styles.imageContainer, animatedImageStyle]}
-          >
-            {taskImage && (
-              <Animated.Image
-                source={taskImage}
-                style={styles.taskImage}
-                resizeMode="contain"
-              />
-            )}
-          </Animated.View>
-          <Animated.View entering={FadeIn.duration(600).delay(600)}>
+
+          <Animated.View entering={FadeIn.duration(700).delay(120)} style={styles.card}>
+            <Text style={styles.cardLabel}>Current Focus</Text>
+            <Text style={styles.taskText} accessibilityRole="header">
+              {currentTask}
+            </Text>
+
+            <View style={styles.artworkWrapper} accessible accessibilityLabel={currentTask}>
+              {taskImage ? (
+                <Animated.Image
+                  source={taskImage}
+                  style={[styles.taskImage, animatedImageStyle]}
+                  resizeMode="contain"
+                  accessibilityIgnoresInvertColors
+                />
+              ) : (
+                <View style={styles.fallbackDot} />
+              )}
+            </View>
+
             <Text style={styles.quote}>"Start your day with calm"</Text>
-          </Animated.View>
-          <Animated.View entering={FadeIn.duration(600).delay(800)}>
+
             <Pressable
+              accessibilityRole={buttonRole}
+              accessibilityLabel="Start my day"
+              hitSlop={styles.touchableHitSlop}
+              android_ripple={{ color: "rgba(0,0,0,0.06)" }}
               style={({ pressed }) => [
-                sharedStyles.primaryButton,
-                styles.startButton,
-                pressed && styles.startButtonPressed,
+                {
+                  backgroundColor: theme.colors.primary,
+                  opacity: pressed ? 0.92 : 1,
+                  transform: [{ scale: pressed ? 0.995 : 1 }],
+                },
+                styles.primaryButton,
               ]}
               onPress={handleStartDay}
             >
-              <Text
-                style={[
-                  sharedStyles.primaryButtonText,
-                  styles.startButtonText,
-                ]}
-              >
-                Start My Day
-              </Text>
+              <Text style={styles.primaryButtonText}>Start My Day</Text>
             </Pressable>
           </Animated.View>
+
+          <View style={styles.suggestionsWrapper}>
+            <AiSuggestions currentTask={currentTask} />
+          </View>
         </View>
-        <AiSuggestions currentTask={currentTask} />
       </ScrollView>
     </SafeAreaView>
   );
 }
+
 export default HomeScreen;

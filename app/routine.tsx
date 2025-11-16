@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
-import { Alert, Animated, Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Animated, Dimensions, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import RoutineCard from "../components/RoutineCard";
 import TaskForm from "../components/TaskForm";
@@ -9,9 +9,11 @@ import { getSharedStyles, Theme } from "../constants/shared";
 import { useTheme } from "../context/ThemeContext";
 import { FormData, RoutineItem, sortRoutineItems } from "../utils/utils";
 
+/* -------------------- Assets & Constants -------------------- */
 const DEFAULT_IMAGE = require("./assets/images/pixel/breathe.png");
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
+/* Initial routine preserved */
 const INITIAL_ROUTINE: RoutineItem[] = [
   { id: "1", time: "6:00 AM", task: "🌞 Wake Up Slowly", description: "Start your day gently with deep breaths and soft music.", image: require("./assets/images/pixel/wakeup.png"), insertionOrder: 1 },
   { id: "2", time: "6:30 AM", task: "💧 Drink Warm Water", description: "Rehydrate your body with a glass of warm water.", image: require("./assets/images/pixel/water.png"), insertionOrder: 2 },
@@ -27,6 +29,7 @@ const INITIAL_ROUTINE: RoutineItem[] = [
   { id: "12", time: "10:00 PM", task: "🛌 Sleep Early", description: "Go to bed early for deep, restorative sleep.", image: require("./assets/images/pixel/sleep.png"), insertionOrder: 12 },
 ];
 
+/* -------------------- Modal animation hook (kept) -------------------- */
 const useModalAnimation = () => {
   const scaleAnim = React.useRef(new Animated.Value(0)).current;
   const translateX = React.useRef(new Animated.Value(0)).current;
@@ -39,6 +42,7 @@ const useModalAnimation = () => {
 
   const openAnimation = useCallback(
     (x: number, y: number) => {
+      // center from tap location
       translateX.setValue(x - SCREEN_WIDTH / 2);
       translateY.setValue(y - SCREEN_HEIGHT / 2);
       scaleAnim.setValue(0);
@@ -62,6 +66,7 @@ const useModalAnimation = () => {
   return { animatedStyle, openAnimation, closeAnimation };
 };
 
+/* -------------------- Screen Component -------------------- */
 export default function RoutineScreen() {
   const { theme } = useTheme();
   const styles = useMemo(() => getStyles(theme), [theme]);
@@ -78,6 +83,7 @@ export default function RoutineScreen() {
   const { animatedStyle, openAnimation, closeAnimation } = useModalAnimation();
   const sortedRoutineItems = useMemo(() => sortRoutineItems(routineItems), [routineItems]);
 
+  /* -------------------- Handlers -------------------- */
   const openModal = useCallback((task: RoutineItem, x: number, y: number) => {
     setSelectedTask(task);
     setModalVisible(true);
@@ -170,26 +176,47 @@ export default function RoutineScreen() {
     router.push("/");
   }, []);
 
+  /* -------------------- Render -------------------- */
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+    <SafeAreaView style={styles.safeArea}>
       <ScrollView
         style={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <Text style={[sharedStyles.heading, styles.heading]}>🧘 Zen Routine</Text>
-        <Pressable
-          style={({ pressed }) => [styles.enhancedAddButton, pressed && styles.addButtonPressed]}
-          onPress={() => openForm()}
-        >
-          <Text style={styles.enhancedAddButtonText}>+ Add New Task</Text>
-        </Pressable>
+        <View style={styles.headerRow}>
+          <Text style={[sharedStyles.heading, styles.heading]}>🧘 Zen Routine</Text>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Add new task"
+            hitSlop={styles.hitSlop}
+            android_ripple={{ color: "rgba(0,0,0,0.06)" }}
+            style={({ pressed }) => [
+              styles.addButton,
+              pressed && styles.addButtonPressed,
+            ]}
+            onPress={() => openForm()}
+          >
+            <Text style={styles.addButtonText}>+ Add New Task</Text>
+          </Pressable>
+        </View>
+
         <View style={styles.routineList}>
           {sortedRoutineItems.map((item) => (
-            <RoutineCard key={item.id} item={item} onPress={openModal} />
+            <RoutineCard
+              key={item.id}
+              item={item}
+              onPress={openModal}
+            />
           ))}
         </View>
+
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Back to home"
+          hitSlop={styles.hitSlop}
+          android_ripple={{ color: "rgba(0,0,0,0.06)" }}
           style={({ pressed }) => [sharedStyles.primaryButton, styles.backButton, pressed && styles.backButtonPressed]}
           onPress={handleBackHome}
         >
@@ -197,6 +224,7 @@ export default function RoutineScreen() {
         </Pressable>
       </ScrollView>
 
+      {/* Task Modal (animated) */}
       <TaskModal
         visible={modalVisible}
         task={selectedTask}
@@ -205,6 +233,8 @@ export default function RoutineScreen() {
         onEdit={handleEditFromModal}
         onDelete={handleDelete}
       />
+
+      {/* Add/Edit Form */}
       <TaskForm
         visible={formVisible}
         isEditing={!!editingId}
@@ -217,48 +247,99 @@ export default function RoutineScreen() {
   );
 }
 
-const getStyles = (theme: Theme) => StyleSheet.create({
-  scrollContainer: { flex: 1 },
-  scrollContent: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingTop: 60,
-    paddingBottom: theme.spacing.xl,
-  },
-  heading: {
-    marginBottom: theme.spacing.xl,
-    letterSpacing: 1,
-  },
-  enhancedAddButton: {
-    backgroundColor: theme.colors.background,
-    borderWidth: 2,
-    borderColor: theme.colors.secondary,
-    borderStyle: "dashed",
-    paddingVertical: theme.spacing.lg,
-    paddingHorizontal: theme.spacing.xl,
-    borderRadius: theme.borderRadius.lg,
-    marginBottom: theme.spacing.xl,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  addButtonPressed: {
-    transform: [{ scale: 0.98 }],
-    opacity: 0.8,
-  },
-  enhancedAddButtonText: {
-    fontSize: 16,
-    color: theme.colors.secondary,
-    fontWeight: "600",
-    letterSpacing: 0.5,
-  },
-  routineList: {
-    marginBottom: theme.spacing.xl,
-    gap: theme.spacing.md,
-  },
-  backButton: {
-    marginTop: theme.spacing.lg,
-  },
-  backButtonPressed: {
-    transform: [{ scale: 0.98 }],
-    opacity: 0.9,
-  },
-});
+/* -------------------- Themed Styles -------------------- */
+const getStyles = (theme: Theme) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+
+    scrollContainer: {
+      flex: 1,
+    },
+
+    scrollContent: {
+      paddingHorizontal: theme.spacing.lg,
+      paddingTop: 28,
+      paddingBottom: theme.spacing.xl,
+      alignItems: "stretch",
+      gap: theme.spacing.lg,
+    },
+
+    headerRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: theme.spacing.sm,
+      gap: theme.spacing.md,
+    },
+
+    heading: {
+      marginBottom: 0,
+      letterSpacing: 0.6,
+      fontSize: 20,
+    },
+
+    /* Add button (refined) */
+    addButton: {
+      backgroundColor: theme.colors.white,
+      borderWidth: 1.5,
+      borderColor: theme.colors.secondary,
+      paddingVertical: theme.spacing.sm + 4,
+      paddingHorizontal: theme.spacing.lg,
+      borderRadius: theme.borderRadius.md,
+      alignItems: "center",
+      justifyContent: "center",
+      minWidth: 130,
+      shadowColor: "#000",
+      ...Platform.select({
+        ios: {
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.06,
+          shadowRadius: 12,
+        },
+        android: {
+          elevation: 2,
+        },
+      }),
+    },
+    addButtonPressed: {
+      transform: [{ translateY: 1 }],
+      opacity: 0.95,
+    },
+    addButtonText: {
+      fontSize: 15,
+      color: theme.colors.primary,
+      fontFamily: theme.fonts.medium,
+      letterSpacing: 0.2,
+    },
+
+    /* Routine list */
+    routineList: {
+      marginTop: theme.spacing.sm,
+      marginBottom: theme.spacing.lg,
+      gap: theme.spacing.md,
+    },
+
+    /* Back button refined */
+    backButton: {
+      marginTop: theme.spacing.md,
+      alignSelf: "center",
+      paddingVertical: theme.spacing.md,
+      paddingHorizontal: theme.spacing.xl,
+      borderRadius: theme.borderRadius.md,
+    },
+    backButtonPressed: {
+      transform: [{ scale: 0.995 }],
+      opacity: 0.95,
+    },
+
+    /* Shared hitSlop */
+    hitSlop: {
+      top: 10,
+      bottom: 10,
+      left: 10,
+      right: 10,
+    },
+  });

@@ -6,7 +6,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  View,
+  View
 } from "react-native";
 import { Theme } from "../constants/shared";
 import { useTheme } from "../context/ThemeContext";
@@ -33,38 +33,39 @@ const TaskModal: React.FC<TaskModalProps> = ({
   const styles = useMemo(() => getStyles(theme), [theme]);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
+  const slideAnim = useRef(new Animated.Value(40)).current;
 
+  /* -------------------- Animations -------------------- */
   useEffect(() => {
     if (visible) {
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
-          duration: 300,
+          duration: 240,
           useNativeDriver: true,
         }),
         Animated.spring(slideAnim, {
           toValue: 0,
+          tension: 90,
+          friction: 9,
           useNativeDriver: true,
-          tension: 100,
-          friction: 8,
         }),
       ]).start();
     } else {
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 0,
-          duration: 200,
+          duration: 180,
           useNativeDriver: true,
         }),
         Animated.timing(slideAnim, {
-          toValue: 50,
-          duration: 200,
+          toValue: 40,
+          duration: 180,
           useNativeDriver: true,
         }),
       ]).start();
     }
-  }, [visible, fadeAnim, slideAnim]);
+  }, [visible]);
 
   if (!task) return null;
 
@@ -73,13 +74,13 @@ const TaskModal: React.FC<TaskModalProps> = ({
       visible={visible}
       transparent
       animationType="none"
-      onRequestClose={onClose}
       statusBarTranslucent
+      onRequestClose={onClose}
     >
-      <Pressable style={styles.modalOverlay} onPress={onClose}>
+      <Pressable style={styles.overlay} onPress={onClose}>
         <Animated.View
           style={[
-            styles.enhancedModalContent,
+            styles.modalCard,
             animatedStyle,
             {
               opacity: fadeAnim,
@@ -90,49 +91,61 @@ const TaskModal: React.FC<TaskModalProps> = ({
             },
           ]}
         >
-          <Pressable onStartShouldSetResponder={() => true}>
-            <View style={styles.modalHandle} />
-            <View style={styles.imageContainer}>
-              <View style={styles.imageGlow} />
+          <Pressable onPress={() => {}} style={{ alignItems: "center" }}>
+            {/* Handle / Drag Indicator */}
+            <View style={styles.dragHandle} />
+
+            {/* Image */}
+            <View style={styles.imageWrapper}>
+              <View style={styles.glow} />
               <Image
                 source={task.image}
-                style={styles.enhancedModalImage}
+                style={styles.image}
                 resizeMode="contain"
               />
             </View>
-            <View style={styles.taskInfo}>
-              <Text style={styles.taskTime}>{task.time}</Text>
-              <Text style={styles.enhancedModalTitle}>{task.task}</Text>
-              <Text style={styles.enhancedModalDescription}>
-                {task.description}
-              </Text>
+
+            {/* Task Info */}
+            <View style={styles.info}>
+              <Text style={styles.time}>{task.time}</Text>
+              <Text style={styles.title}>{task.task}</Text>
+              <Text style={styles.description}>{task.description}</Text>
             </View>
-            <View style={styles.enhancedModalActions}>
+
+            {/* Buttons */}
+            <View style={styles.buttonsRow}>
               <Pressable
                 style={({ pressed }) => [
-                  styles.actionButton,
-                  styles.editButton,
-                  pressed && styles.buttonPressed,
+                  styles.actionBtn,
+                  styles.editBtn,
+                  pressed && styles.btnPressed,
                 ]}
+                android_ripple={{ color: "rgba(0,0,0,0.06)" }}
                 onPress={onEdit}
               >
-                <Text style={styles.actionButtonText}>✏️ Edit</Text>
+                <Text style={styles.actionText}>✏️ Edit</Text>
               </Pressable>
+
               <Pressable
                 style={({ pressed }) => [
-                  styles.actionButton,
-                  styles.deleteButton,
-                  pressed && styles.buttonPressed,
+                  styles.actionBtn,
+                  styles.deleteBtn,
+                  pressed && styles.btnPressed,
                 ]}
+                android_ripple={{ color: "rgba(255,255,255,0.15)" }}
                 onPress={onDelete}
               >
-                <Text style={[styles.actionButtonText, styles.deleteButtonText]}>
-                  🗑️ Delete
-                </Text>
+                <Text style={styles.deleteText}>🗑️ Delete</Text>
               </Pressable>
             </View>
-            <Pressable style={styles.closeArea} onPress={onClose}>
-              <Text style={styles.closeText}>Close</Text>
+
+            {/* Close */}
+            <Pressable
+              style={styles.closeArea}
+              onPress={onClose}
+              android_ripple={{ color: "rgba(0,0,0,0.05)" }}
+            >
+              <Text style={styles.closeLabel}>Close</Text>
             </Pressable>
           </Pressable>
         </Animated.View>
@@ -141,130 +154,159 @@ const TaskModal: React.FC<TaskModalProps> = ({
   );
 };
 
-const getStyles = (theme: Theme) => StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.4)",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: theme.spacing.lg,
-  },
-  enhancedModalContent: {
-    backgroundColor: theme.colors.white,
-    borderRadius: 28,
-    paddingTop: theme.spacing.sm,
-    paddingBottom: theme.spacing.xl,
-    paddingHorizontal: theme.spacing.xl,
-    width: "100%",
-    maxWidth: 340,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.25,
-    shadowRadius: 25,
-    elevation: 25,
-  },
-  modalHandle: {
-    width: 36,
-    height: 4,
-    backgroundColor: "rgba(0, 0, 0, 0.1)",
-    borderRadius: 2,
-    marginBottom: theme.spacing.lg,
-  },
-  imageContainer: {
-    position: "relative",
-    marginBottom: theme.spacing.lg,
-  },
-  imageGlow: {
-    position: "absolute",
-    top: -10,
-    left: -10,
-    right: -10,
-    bottom: -10,
-    backgroundColor: `${theme.colors.primary}1A`, // ~10% opacity
-    borderRadius: 60,
-    zIndex: 0,
-  },
-  enhancedModalImage: {
-    width: 120,
-    height: 120,
-    zIndex: 1,
-  },
-  taskInfo: {
-    alignItems: "center",
-    marginBottom: theme.spacing.xl,
-  },
-  taskTime: {
-    fontSize: 14,
-    color: theme.colors.primary,
-    fontWeight: "600",
-    backgroundColor: `${theme.colors.primary}1A`,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.xs,
-    borderRadius: theme.borderRadius.sm,
-    marginBottom: theme.spacing.sm,
-  },
-  enhancedModalTitle: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: theme.colors.primary,
-    marginBottom: theme.spacing.sm,
-    textAlign: "center",
-    lineHeight: 28,
-    fontFamily: theme.fonts.bold,
-  },
-  enhancedModalDescription: {
-    fontSize: 16,
-    color: theme.colors.secondary,
-    textAlign: "center",
-    lineHeight: 22,
-    opacity: 0.9,
-    fontFamily: theme.fonts.regular,
-  },
-  enhancedModalActions: {
-    flexDirection: "row",
-    gap: theme.spacing.sm,
-    marginBottom: theme.spacing.lg,
-    width: "100%",
-  },
-  actionButton: {
-    flex: 1,
-    paddingVertical: theme.spacing.md,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 44,
-  },
-  editButton: {
-    backgroundColor: theme.colors.primary,
-  },
-  deleteButton: {
-    backgroundColor: '#FF3B30', // Hardcoded red color
-  },
-  buttonPressed: {
-    transform: [{ scale: 0.96 }],
-    opacity: 0.8,
-  },
-  actionButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: theme.colors.white,
-    fontFamily: theme.fonts.bold,
-  },
-  deleteButtonText: {
-    color: theme.colors.white,
-  },
-  closeArea: {
-    paddingVertical: theme.spacing.md,
-    paddingHorizontal: theme.spacing.lg,
-  },
-  closeText: {
-    fontSize: 16,
-    color: theme.colors.secondary,
-    textAlign: "center",
-    fontWeight: "500",
-    fontFamily: theme.fonts.medium,
-  },
-});
-
 export default TaskModal;
+
+/* ========================================================= */
+/* ======================   STYLES   ======================= */
+/* ========================================================= */
+const getStyles = (theme: Theme) =>
+  StyleSheet.create({
+    /* Overlay */
+    overlay: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.45)",
+      justifyContent: "center",
+      alignItems: "center",
+      paddingHorizontal: theme.spacing.lg,
+    },
+
+    /* Modal Card */
+    modalCard: {
+      width: "100%",
+      maxWidth: 360,
+      backgroundColor: theme.colors.white,
+      borderRadius: 28,
+      paddingVertical: theme.spacing.lg,
+      paddingHorizontal: theme.spacing.xl,
+      alignItems: "center",
+
+      // Modern shadow
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 12 },
+      shadowOpacity: 0.15,
+      shadowRadius: 22,
+      elevation: 18,
+    },
+
+    /* Drag handle */
+    dragHandle: {
+      width: 40,
+      height: 5,
+      borderRadius: 3,
+      backgroundColor: "rgba(0,0,0,0.10)",
+      marginBottom: theme.spacing.lg,
+    },
+
+    /* Image area */
+    imageWrapper: {
+      position: "relative",
+      marginBottom: theme.spacing.md,
+    },
+
+    glow: {
+      position: "absolute",
+      top: -16,
+      left: -16,
+      right: -16,
+      bottom: -16,
+      backgroundColor: `${theme.colors.primary}1A`,
+      borderRadius: 100,
+      opacity: 0.25,
+    },
+
+    image: {
+      width: 130,
+      height: 130,
+    },
+
+    /* Info */
+    info: {
+      alignItems: "center",
+      marginBottom: theme.spacing.xl,
+      paddingHorizontal: theme.spacing.md,
+    },
+
+    time: {
+      fontSize: 14,
+      fontFamily: theme.fonts.medium,
+      color: theme.colors.primary,
+      backgroundColor: `${theme.colors.primary}15`,
+      paddingVertical: 4,
+      paddingHorizontal: 10,
+      borderRadius: theme.borderRadius.sm,
+      marginBottom: theme.spacing.sm,
+    },
+
+    title: {
+      fontSize: 22,
+      fontFamily: theme.fonts.bold,
+      color: theme.colors.primary,
+      textAlign: "center",
+      marginBottom: theme.spacing.xs,
+    },
+
+    description: {
+      fontSize: 16,
+      fontFamily: theme.fonts.regular,
+      color: theme.colors.secondary,
+      opacity: 0.9,
+      textAlign: "center",
+      lineHeight: 22,
+    },
+
+    /* Buttons */
+    buttonsRow: {
+      flexDirection: "row",
+      width: "100%",
+      gap: theme.spacing.sm,
+      marginBottom: theme.spacing.lg,
+    },
+
+    actionBtn: {
+      flex: 1,
+      paddingVertical: theme.spacing.md,
+      borderRadius: 14,
+      alignItems: "center",
+      justifyContent: "center",
+      minHeight: 48,
+      overflow: "hidden",
+    },
+
+    editBtn: {
+      backgroundColor: theme.colors.primary,
+    },
+
+    deleteBtn: {
+      backgroundColor: "#FF3B30",
+    },
+
+    actionText: {
+      color: theme.colors.white,
+      fontSize: 16,
+      fontFamily: theme.fonts.medium,
+    },
+
+    deleteText: {
+      color: theme.colors.white,
+      fontSize: 16,
+      fontFamily: theme.fonts.medium,
+    },
+
+    btnPressed: {
+      transform: [{ scale: 0.97 }],
+      opacity: 0.9,
+    },
+
+    /* Close */
+    closeArea: {
+      paddingVertical: 10,
+      paddingHorizontal: theme.spacing.lg,
+    },
+
+    closeLabel: {
+      fontSize: 16,
+      fontFamily: theme.fonts.medium,
+      color: theme.colors.secondary,
+      textAlign: "center",
+    },
+  });

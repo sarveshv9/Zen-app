@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -17,40 +17,20 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { getSharedStyles, Theme } from "../../constants/shared";
 import { useTheme } from "../../context/ThemeContext";
 
-// Constants
 const STORAGE_KEY = "@todo_tasks";
 
-// Types
 interface Task {
   id: string;
   text: string;
   completed: boolean;
-  createdAt: string; // Changed to string for JSON serialization
+  createdAt: string;
   category: "today" | "later";
 }
 
 type TaskCategory = Task["category"];
 
-interface TaskItemProps {
-  task: Task;
-  onToggle: (id: string) => void;
-  onEdit: (task: Task) => void;
-  onDelete: (id: string) => void;
-  theme: Theme;
-}
-
-interface TaskModalProps {
-  visible: boolean;
-  task: Task | null;
-  onSave: (text: string, category: TaskCategory) => void;
-  onClose: () => void;
-  theme: Theme;
-}
-
-// Helper Functions
-const generateTaskId = (): string => {
-  return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
-};
+const generateTaskId = (): string =>
+  `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 
 const createNewTask = (text: string, category: TaskCategory): Task => ({
   id: generateTaskId(),
@@ -60,21 +40,17 @@ const createNewTask = (text: string, category: TaskCategory): Task => ({
   category,
 });
 
-// Storage Functions
 const loadTasks = async (): Promise<Task[]> => {
   try {
     const tasksJson = await AsyncStorage.getItem(STORAGE_KEY);
-    if (tasksJson) {
-      return JSON.parse(tasksJson);
-    }
-    return [];
+    return tasksJson ? JSON.parse(tasksJson) : [];
   } catch (error) {
     console.error("Error loading tasks:", error);
     return [];
   }
 };
 
-const saveTasks = async (tasks: Task[]): Promise<void> => {
+const saveTasks = async (tasks: Task[]) => {
   try {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
   } catch (error) {
@@ -82,200 +58,259 @@ const saveTasks = async (tasks: Task[]): Promise<void> => {
   }
 };
 
-// Task Item Component
-const TaskItem = React.memo<TaskItemProps>(
-  ({ task, onToggle, onEdit, onDelete, theme }) => {
-    const styles = useMemo(() => getStyles(theme), [theme]);
+/* ---------------------- TASK ITEM ------------------------ */
+const TaskItem = ({
+  task,
+  onToggle,
+  onEdit,
+  onDelete,
+  theme,
+}: {
+  task: Task;
+  onToggle: (id: string) => void;
+  onEdit: (task: Task) => void;
+  onDelete: (id: string) => void;
+  theme: Theme;
+}) => {
+  const styles = useMemo(() => getStyles(theme), [theme]);
 
-    const handleDelete = useCallback(() => {
-      // --- MODIFICATION ---
-      // Delete directly instead of showing an alert
-      onDelete(task.id);
-      // --------------------
-    }, [task.id, onDelete]); // No longer needs task.text
+  return (
+    <View style={styles.taskItemWrapper}>
+      <Pressable
+        style={styles.taskItemContainer}
+        onPress={() => onToggle(task.id)}
+      >
+        <Ionicons
+          name={task.completed ? "checkmark-circle" : "ellipse-outline"}
+          size={24}
+          color={task.completed ? theme.colors.primary : theme.colors.secondary}
+        />
 
-    const iconName = task.completed ? "checkmark-circle" : "ellipse-outline";
-    const iconColor = task.completed
-      ? theme.colors.primary
-      : theme.colors.secondary;
-
-    return (
-      <View style={styles.taskItemWrapper}>
-        <Pressable
-          style={styles.taskItemContainer}
-          onPress={() => onToggle(task.id)}
+        <Text
+          style={[
+            styles.taskItemText,
+            task.completed && styles.taskItemTextDone,
+          ]}
         >
-          <Ionicons name={iconName} size={24} color={iconColor} />
-          <Text
-            style={[
-              styles.taskItemText,
-              task.completed && styles.taskItemTextDone,
-            ]}
-          >
-            {task.text}
-          </Text>
+          {task.text}
+        </Text>
+      </Pressable>
+
+      <View style={styles.taskActions}>
+        <Pressable
+          style={styles.taskActionButton}
+          onPress={() => onEdit(task)}
+        >
+          <Ionicons name="pencil" size={18} color={theme.colors.secondary} />
         </Pressable>
 
-        <View style={styles.taskActions}>
-          <Pressable
-            style={styles.taskActionButton}
-            onPress={() => onEdit(task)}
-          >
-            <Ionicons name="pencil" size={18} color={theme.colors.secondary} />
-          </Pressable>
-          <Pressable style={styles.taskActionButton} onPress={handleDelete}>
-            <Ionicons name="trash-outline" size={18} color="#e57373" />
-          </Pressable>
-        </View>
-      </View>
-    );
-  }
-);
-
-TaskItem.displayName = "TaskItem";
-
-// Task Modal Component
-const TaskModal = React.memo<TaskModalProps>(
-  ({ visible, task, onSave, onClose, theme }) => {
-    const styles = useMemo(() => getStyles(theme), [theme]);
-    const [taskText, setTaskText] = useState("");
-    const [category, setCategory] = useState<TaskCategory>("today");
-
-    const isEditing = !!task;
-
-    // Reset modal state when visibility changes
-    useEffect(() => {
-      if (visible) {
-        if (task) {
-          setTaskText(task.text);
-          setCategory(task.category);
-        } else {
-          setTaskText("");
-          setCategory("today");
-        }
-      }
-    }, [visible, task]);
-
-    const handleSave = useCallback(() => {
-      const trimmedText = taskText.trim();
-      if (!trimmedText) {
-        Alert.alert("Error", "Please enter a task description");
-        return;
-      }
-      onSave(trimmedText, category);
-    }, [taskText, category, onSave]);
-
-    const handleCategoryPress = useCallback((newCategory: TaskCategory) => {
-      setCategory(newCategory);
-    }, []);
-
-    return (
-      <Modal
-        visible={visible}
-        transparent
-        animationType="fade"
-        onRequestClose={onClose}
-      >
-        <KeyboardAvoidingView
-          style={styles.modalOverlay}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        <Pressable
+          style={styles.taskActionButton}
+          onPress={() => onDelete(task.id)}
         >
-          <Pressable style={styles.modalOverlayPressable} onPress={onClose}>
-            <Pressable
-              style={styles.modalContainer}
-              onPress={(e) => e.stopPropagation()}
-            >
-              <ScrollView
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
+          <Ionicons name="trash-outline" size={18} color="#e57373" />
+        </Pressable>
+      </View>
+    </View>
+  );
+};
+
+/* ---------------------- CONFIRM MODAL (IN-APP) ------------------------ */
+const ConfirmModal = ({
+  visible,
+  title,
+  message,
+  onCancel,
+  onConfirm,
+  theme,
+}: {
+  visible: boolean;
+  title: string;
+  message: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+  theme: Theme;
+}) => {
+  const styles = useMemo(() => getStyles(theme), [theme]);
+
+  return (
+    <Modal visible={visible} transparent animationType="fade">
+      <KeyboardAvoidingView
+        style={styles.modalOverlay}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <Pressable style={styles.modalOverlayPressable} onPress={onCancel}>
+          <Pressable
+            style={styles.modalContainer}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Text style={styles.modalTitle}>{title}</Text>
+            <Text style={{ marginBottom: 16, color: theme.colors.secondary }}>
+              {message}
+            </Text>
+
+            <View style={styles.modalButtons}>
+              <Pressable
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={onCancel}
               >
-                <Text style={styles.modalTitle}>
-                  {isEditing ? "Edit Task" : "Add New Task"}
-                </Text>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </Pressable>
 
-                <TextInput
-                  style={styles.taskInput}
-                  placeholder="What do you want to accomplish?"
-                  placeholderTextColor={theme.colors.secondary}
-                  value={taskText}
-                  onChangeText={setTaskText}
-                  multiline
-                  autoFocus
-                  maxLength={500}
-                />
-
-                <Text style={styles.categoryLabel}>Category</Text>
-                <View style={styles.categoryContainer}>
-                  <Pressable
-                    style={[
-                      styles.categoryButton,
-                      category === "today" && styles.categoryButtonActive,
-                    ]}
-                    onPress={() => handleCategoryPress("today")}
-                  >
-                    <Text
-                      style={[
-                        styles.categoryButtonText,
-                        category === "today" && styles.categoryButtonTextActive,
-                      ]}
-                    >
-                      Today's Focus
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    style={[
-                      styles.categoryButton,
-                      category === "later" && styles.categoryButtonActive,
-                    ]}
-                    onPress={() => handleCategoryPress("later")}
-                  >
-                    <Text
-                      style={[
-                        styles.categoryButtonText,
-                        category === "later" && styles.categoryButtonTextActive,
-                      ]}
-                    >
-                      Later
-                    </Text>
-                  </Pressable>
-                </View>
-
-                <View style={styles.modalButtons}>
-                  <Pressable
-                    style={[styles.modalButton, styles.cancelButton]}
-                    onPress={onClose}
-                  >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
-                  </Pressable>
-                  <Pressable
-                    style={[styles.modalButton, styles.saveButton]}
-                    onPress={handleSave}
-                  >
-                    <Text style={styles.saveButtonText}>
-                      {isEditing ? "Update" : "Add Task"}
-                    </Text>
-                  </Pressable>
-                </View>
-              </ScrollView>
-            </Pressable>
+              <Pressable
+                style={[styles.modalButton, styles.saveButton]}
+                onPress={onConfirm}
+              >
+                <Text style={styles.saveButtonText}>Clear</Text>
+              </Pressable>
+            </View>
           </Pressable>
-        </KeyboardAvoidingView>
-      </Modal>
-    );
-  }
-);
+        </Pressable>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+};
 
-TaskModal.displayName = "TaskModal";
+/* ---------------------- TASK MODAL ------------------------ */
+const TaskModal = ({
+  visible,
+  task,
+  onSave,
+  onClose,
+  theme,
+}: {
+  visible: boolean;
+  task: Task | null;
+  onSave: (text: string, category: TaskCategory) => void;
+  onClose: () => void;
+  theme: Theme;
+}) => {
+  const styles = useMemo(() => getStyles(theme), [theme]);
 
-// Task Section Component
-const TaskSection = React.memo<{
+  const [taskText, setTaskText] = useState("");
+  const [category, setCategory] = useState<TaskCategory>("today");
+
+  useEffect(() => {
+    if (visible) {
+      if (task) {
+        setTaskText(task.text);
+        setCategory(task.category);
+      } else {
+        setTaskText("");
+        setCategory("today");
+      }
+    }
+  }, [visible, task]);
+
+  const handleSave = () => {
+    const trimmed = taskText.trim();
+    if (!trimmed) return Alert.alert("Error", "Enter a task description");
+    onSave(trimmed, category);
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="fade">
+      <KeyboardAvoidingView
+        style={styles.modalOverlay}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <Pressable style={styles.modalOverlayPressable} onPress={onClose}>
+          <Pressable
+            style={styles.modalContainer}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Text style={styles.modalTitle}>
+              {task ? "Edit Task" : "Add New Task"}
+            </Text>
+
+            <TextInput
+              style={styles.taskInput}
+              placeholder="What do you want to accomplish?"
+              placeholderTextColor={theme.colors.secondary}
+              value={taskText}
+              onChangeText={setTaskText}
+              multiline
+              autoFocus
+            />
+
+            <Text style={styles.categoryLabel}>Category</Text>
+
+            <View style={styles.categoryContainer}>
+              <Pressable
+                style={[
+                  styles.categoryButton,
+                  category === "today" && styles.categoryButtonActive,
+                ]}
+                onPress={() => setCategory("today")}
+              >
+                <Text
+                  style={[
+                    styles.categoryButtonText,
+                    category === "today" && styles.categoryButtonTextActive,
+                  ]}
+                >
+                  Today
+                </Text>
+              </Pressable>
+
+              <Pressable
+                style={[
+                  styles.categoryButton,
+                  category === "later" && styles.categoryButtonActive,
+                ]}
+                onPress={() => setCategory("later")}
+              >
+                <Text
+                  style={[
+                    styles.categoryButtonText,
+                    category === "later" && styles.categoryButtonTextActive,
+                  ]}
+                >
+                  Later
+                </Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.modalButtons}>
+              <Pressable
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={onClose}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </Pressable>
+
+              <Pressable
+                style={[styles.modalButton, styles.saveButton]}
+                onPress={handleSave}
+              >
+                <Text style={styles.saveButtonText}>
+                  {task ? "Update" : "Add Task"}
+                </Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+};
+
+/* ---------------------- TASK SECTION ------------------------ */
+const TaskSection = ({
+  title,
+  tasks,
+  onToggle,
+  onEdit,
+  onDelete,
+  theme,
+}: {
   title: string;
   tasks: Task[];
   onToggle: (id: string) => void;
   onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
   theme: Theme;
-}>(({ title, tasks, onToggle, onEdit, onDelete, theme }) => {
+}) => {
   const styles = useMemo(() => getStyles(theme), [theme]);
 
   if (tasks.length === 0) return null;
@@ -283,6 +318,7 @@ const TaskSection = React.memo<{
   return (
     <View style={styles.sectionContainer}>
       <Text style={styles.sectionTitle}>{title}</Text>
+
       {tasks.map((task) => (
         <TaskItem
           key={task.id}
@@ -295,24 +331,20 @@ const TaskSection = React.memo<{
       ))}
     </View>
   );
-});
+};
 
-TaskSection.displayName = "TaskSection";
-
-// Empty State Component
-const EmptyState = React.memo<{ styles: any }>(({ styles }) => (
+/* ---------------------- EMPTY STATE ------------------------ */
+const EmptyState = ({ styles }: { styles: any }) => (
   <View style={styles.emptyState}>
     <Text style={styles.emptyStateText}>📋</Text>
     <Text style={styles.emptyStateTitle}>No tasks yet</Text>
     <Text style={styles.emptyStateSubtitle}>
-      Tap "Add New Task" to get started with your productivity journey
+      Tap "Add New Task" to get started
     </Text>
   </View>
-));
+);
 
-EmptyState.displayName = "EmptyState";
-
-// Main Component
+/* ---------------------- MAIN SCREEN ------------------------ */
 export default function TodoScreen() {
   const { theme } = useTheme();
   const styles = useMemo(() => getStyles(theme), [theme]);
@@ -323,115 +355,74 @@ export default function TodoScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
-  // Load tasks on mount
+  // Confirm modal for clearing
+  const [confirmVisible, setConfirmVisible] = useState(false);
+
   useEffect(() => {
-    const initializeTasks = async () => {
-      const loadedTasks = await loadTasks();
-      setTasks(loadedTasks);
+    (async () => {
+      const loaded = await loadTasks();
+      console.log("[TodoScreen] loaded tasks:", loaded.length);
+      setTasks(loaded);
       setIsLoading(false);
-    };
-    initializeTasks();
+    })();
   }, []);
 
-  // Save tasks whenever they change
+  // Persist whenever tasks change
   useEffect(() => {
     if (!isLoading) {
-      saveTasks(tasks);
+      saveTasks(tasks).catch((e) =>
+        console.error("[TodoScreen] saveTasks failed:", e)
+      );
     }
   }, [tasks, isLoading]);
 
-  // Computed values
-  const { todayTasks, laterTasks, completedCount, totalCount } = useMemo(() => {
-    const today = tasks.filter((task) => task.category === "today");
-    const later = tasks.filter((task) => task.category === "later");
-    const completed = tasks.filter((task) => task.completed).length;
-    const total = tasks.length;
+  const completedCount = tasks.filter((t) => t.completed).length;
+  const todayTasks = tasks.filter((t) => t.category === "today");
+  const laterTasks = tasks.filter((t) => t.category === "later");
 
-    return {
-      todayTasks: today,
-      laterTasks: later,
-      completedCount: completed,
-      totalCount: total,
-    };
-  }, [tasks]);
-
-  // Modal handlers
-  const openAddModal = useCallback(() => {
-    setEditingTask(null);
-    setModalVisible(true);
-  }, []);
-
-  const openEditModal = useCallback((task: Task) => {
-    setEditingTask(task);
-    setModalVisible(true);
-  }, []);
-
-  const closeModal = useCallback(() => {
+  const handleSaveTask = (text: string, category: TaskCategory) => {
+    if (editingTask) {
+      setTasks((prev) =>
+        prev.map((task) =>
+          task.id === editingTask.id ? { ...task, text, category } : task
+        )
+      );
+    } else {
+      setTasks((prev) => [...prev, createNewTask(text, category)]);
+    }
     setModalVisible(false);
     setEditingTask(null);
-  }, []);
+  };
 
-  // Task handlers
-  const handleSaveTask = useCallback(
-    (text: string, category: TaskCategory) => {
-      if (editingTask) {
-        // Update existing task
-        setTasks((prev) =>
-          prev.map((task) =>
-            task.id === editingTask.id ? { ...task, text, category } : task
-          )
-        );
-      } else {
-        // Add new task
-        setTasks((prev) => [...prev, createNewTask(text, category)]);
-      }
-      closeModal();
-    },
-    [editingTask, closeModal]
-  );
-
-  const handleToggleTask = useCallback((id: string) => {
+  const handleToggleTask = (id: string) =>
     setTasks((prev) =>
-      prev.map((task) =>
-        task.id === id ? { ...task, completed: !task.completed } : task
-      )
+      prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
     );
-  }, []);
 
-  const handleDeleteTask = useCallback((id: string) => {
-    // Cleaned up - no logs
-    setTasks((prev) => prev.filter((task) => task.id !== id));
-  }, []);
+  const handleDeleteTask = (id: string) =>
+    setTasks((prev) => prev.filter((t) => t.id !== id));
 
-  const handleClearCompleted = useCallback(() => {
+  /* NEW: show in-app confirm modal (more reliable cross-platform) */
+  const handleClearCompleted = () => {
     if (completedCount === 0) {
-      Alert.alert(
-        "No completed tasks",
-        "There are no completed tasks to clear"
-      );
-      return;
+      // Slightly more informative message
+      return Alert.alert("No completed tasks", "There are no completed tasks to clear.");
     }
+    setConfirmVisible(true);
+  };
 
-    Alert.alert(
-      "Clear Completed",
-      `Remove ${completedCount} completed task${
-        completedCount === 1 ? "" : "s"
-      }?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Clear",
-          style: "destructive",
-          onPress: () =>
-            setTasks((prev) => prev.filter((task) => !task.completed)),
-        },
-      ]
-    );
-  }, [completedCount]);
+  const performClearCompleted = () => {
+    // Use functional update and immediately persist
+    setTasks((prev) => {
+      const next = prev.filter((t) => !t.completed);
+      // persist immediately to avoid races
+      saveTasks(next).catch((e) => console.error("saveTasks:", e));
+      console.log(`[TodoScreen] cleared ${prev.length - next.length} completed tasks`);
+      return next;
+    });
+    setConfirmVisible(false);
+  };
 
-  const hasCompletedTasks = totalCount > 0 && completedCount > 0;
-
-  // Show loading state
   if (isLoading) {
     return (
       <SafeAreaView style={sharedStyles.container}>
@@ -449,51 +440,44 @@ export default function TodoScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
         <View style={styles.header}>
-          <Text style={[sharedStyles.heading, styles.heading]}>
-            ✅ My Tasks
-          </Text>
-          {totalCount > 0 && (
+          <Text style={[sharedStyles.heading, styles.heading]}>✅ My Tasks</Text>
+
+          {tasks.length > 0 && (
             <Text style={styles.progressText}>
-              {completedCount}/{totalCount} completed
+              {completedCount}/{tasks.length} completed
             </Text>
           )}
         </View>
 
-        {/* Add Task Button */}
         <Pressable
-          style={({ pressed }) => [
-            styles.enhancedAddButton,
-            pressed && styles.buttonPressed,
-          ]}
-          onPress={openAddModal}
+          style={styles.enhancedAddButton}
+          onPress={() => {
+            setEditingTask(null);
+            setModalVisible(true);
+          }}
         >
           <Ionicons name="add" size={24} color={theme.colors.secondary} />
           <Text style={styles.enhancedAddButtonText}>Add New Task</Text>
         </Pressable>
 
-        {/* Clear Completed Button */}
-        {hasCompletedTasks && (
-          <Pressable
-            style={({ pressed }) => [
-              styles.clearButton,
-              pressed && styles.buttonPressed,
-            ]}
-            onPress={handleClearCompleted}
-          >
+        {/* CLEAR COMPLETED BUTTON */}
+        {completedCount > 0 && (
+          <Pressable style={styles.clearButton} onPress={handleClearCompleted}>
             <Text style={styles.clearButtonText}>
               Clear Completed ({completedCount})
             </Text>
           </Pressable>
         )}
 
-        {/* Task Sections */}
         <TaskSection
           title="Today's Focus"
           tasks={todayTasks}
           onToggle={handleToggleTask}
-          onEdit={openEditModal}
+          onEdit={(t) => {
+            setEditingTask(t);
+            setModalVisible(true);
+          }}
           onDelete={handleDeleteTask}
           theme={theme}
         />
@@ -502,28 +486,41 @@ export default function TodoScreen() {
           title="Later"
           tasks={laterTasks}
           onToggle={handleToggleTask}
-          onEdit={openEditModal}
+          onEdit={(t) => {
+            setEditingTask(t);
+            setModalVisible(true);
+          }}
           onDelete={handleDeleteTask}
           theme={theme}
         />
 
-        {/* Empty State */}
-        {totalCount === 0 && <EmptyState styles={styles} />}
+        {tasks.length === 0 && <EmptyState styles={styles} />}
       </ScrollView>
 
-      {/* Task Modal */}
       <TaskModal
         visible={modalVisible}
         task={editingTask}
         onSave={handleSaveTask}
-        onClose={closeModal}
+        onClose={() => {
+          setModalVisible(false);
+          setEditingTask(null);
+        }}
+        theme={theme}
+      />
+
+      <ConfirmModal
+        visible={confirmVisible}
+        title="Clear Completed"
+        message={`Remove ${completedCount} completed task${completedCount === 1 ? "" : "s"}?`}
+        onCancel={() => setConfirmVisible(false)}
+        onConfirm={performClearCompleted}
         theme={theme}
       />
     </SafeAreaView>
   );
 }
 
-// Styles
+/* ---------------------- STYLES ------------------------ */
 const getStyles = (theme: Theme) =>
   StyleSheet.create({
     scrollContainer: { flex: 1 },
@@ -582,7 +579,6 @@ const getStyles = (theme: Theme) =>
       color: "#c62828",
       fontFamily: theme.fonts.medium,
     },
-    buttonPressed: { transform: [{ scale: 0.98 }], opacity: 0.8 },
     sectionContainer: {
       backgroundColor: theme.colors.white,
       borderRadius: theme.borderRadius.lg,
@@ -650,7 +646,7 @@ const getStyles = (theme: Theme) =>
     },
     modalOverlay: {
       flex: 1,
-      backgroundColor: "rgba(0, 0, 0, 0.5)",
+      backgroundColor: "rgba(0,0,0,0.5)",
       justifyContent: "center",
       alignItems: "center",
     },
@@ -673,8 +669,8 @@ const getStyles = (theme: Theme) =>
       fontSize: 20,
       fontFamily: theme.fonts.bold,
       color: theme.colors.primary,
-      marginBottom: theme.spacing.lg,
       textAlign: "center",
+      marginBottom: theme.spacing.lg,
     },
     taskInput: {
       borderWidth: 1,
@@ -702,7 +698,6 @@ const getStyles = (theme: Theme) =>
     categoryButton: {
       flex: 1,
       paddingVertical: theme.spacing.md,
-      paddingHorizontal: theme.spacing.lg,
       borderRadius: theme.borderRadius.md,
       borderWidth: 1,
       borderColor: theme.colors.secondary,
@@ -717,8 +712,13 @@ const getStyles = (theme: Theme) =>
       fontFamily: theme.fonts.medium,
       color: theme.colors.secondary,
     },
-    categoryButtonTextActive: { color: theme.colors.white },
-    modalButtons: { flexDirection: "row", gap: theme.spacing.md },
+    categoryButtonTextActive: {
+      color: theme.colors.white,
+    },
+    modalButtons: {
+      flexDirection: "row",
+      gap: theme.spacing.md,
+    },
     modalButton: {
       flex: 1,
       paddingVertical: theme.spacing.md,
@@ -730,11 +730,13 @@ const getStyles = (theme: Theme) =>
       borderWidth: 1,
       borderColor: theme.colors.secondary,
     },
-    saveButton: { backgroundColor: theme.colors.primary },
     cancelButtonText: {
       fontSize: 16,
       fontFamily: theme.fonts.medium,
       color: theme.colors.secondary,
+    },
+    saveButton: {
+      backgroundColor: theme.colors.primary,
     },
     saveButtonText: {
       fontSize: 16,
